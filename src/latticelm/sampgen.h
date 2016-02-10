@@ -52,6 +52,8 @@ void SampGen(const fst::Fst<A> & ifst, fst::MutableFst<A> & ofst, unsigned nbest
   typedef typename A::StateId S;
 
   // sanity check
+  if(ifst.Start() == -1)
+    THROW_ERROR("Attempting to sample an empty FST");
   if(ifst.Final(ifst.Start()) != fst::numeric_limits<float>::infinity())
     THROW_ERROR("Sampling FSTs where start states are final is not supported yet");
 

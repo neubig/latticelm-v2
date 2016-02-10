@@ -20,9 +20,10 @@ void Pylm::AddSample(const Sentence & sent) {
 }
 
 Sentence Pylm::CreateSample(const DataLattice & lattice, LLStats & stats) {
-  PylmFst<StdArc> pylm_fst(*this);
-  StdComposeFst composed_fst(lattice.GetFst(), pylm_fst);
   StdVectorFst sample_fst;
-  SampGen(composed_fst, sample_fst);
+  PylmFst<StdArc> pylm_fst(*this);
+  SampGen(pylm_fst, sample_fst);
+  // StdComposeFst composed_fst(lattice.GetFst(), pylm_fst);
+  // SampGen(composed_fst, sample_fst);
   return FstToSent(sample_fst);
 }
