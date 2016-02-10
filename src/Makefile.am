@@ -1,0 +1,1 @@
+SUBDIRS = latticelm test
