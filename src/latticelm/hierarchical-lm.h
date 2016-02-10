@@ -10,7 +10,7 @@ namespace latticelm {
 class HierarchicalLM {
 
 public:
-  HierarchicalLM(int char_types, int char_n, int word_n) : char_types_(char_types), char_lm_(char_n), word_lm_(word_n) { }
+  HierarchicalLM(int char_types, int char_n, int word_n) : char_lm_(char_types, char_n), word_lm_(-1, word_n) { }
 
   // Remove or add a sample to the statistics
   void RemoveSample(const Sentence & sent);
@@ -26,7 +26,6 @@ public:
   }
 
 protected:
-  int char_types_;
   PYLM char_lm_, word_lm_;
   SymbolSet<Sentence> word_ids_;
   std::vector<WordId> word_ids_stale_;

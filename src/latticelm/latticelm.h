@@ -6,6 +6,7 @@
 #include <latticelm/timer.h>
 #include <latticelm/symbol-set.h>
 #include <latticelm/sentence.h>
+#include <latticelm/data-lattice.h>
 
 namespace latticelm {
 
@@ -16,11 +17,15 @@ public:
   LatticeLM()  { }
 
   int main(int argc, char** argv);
+
+  template <class LM>
+  void PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm);
   
 protected:
 
   std::string file_format_;
   std::string model_in_file_, model_out_file_;
+  std::string model_type_;
 
   SymbolSet<std::string> cids_;
 

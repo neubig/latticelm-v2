@@ -15,6 +15,26 @@ namespace po = boost::program_options;
 
 namespace latticelm {
 
+template <class LM>
+void LatticeLM::PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm) {
+
+  // Perform training
+  vector<int> order(lattices.size()); std::iota(order.begin(), order.end(), 0);
+  vector<Sentence> sentences;
+  for(int epoch = 1; epoch <= epochs_; epoch++) {
+    std::shuffle(order.begin(), order.end(), *GlobalVars::rndeng);
+    LLStats ep_stats;
+    for(int sid : order) {
+      if(epoch != 1)
+        lm.RemoveSample(sentences[sid]);
+      sentences[sid] = lm.CreateSample(*lattices[sid], lattice_weight_, ep_stats);
+      lm.AddSample(sentences[sid]);
+    }
+    cerr << "Finished epoch " << epoch << ": char=" << ep_stats.words_ << ", ppl=" << ep_stats.CalcPPL() << " (s=" << time_.Elapsed() << endl;
+    lm.ResampleParameters();
+  }
+}
+
 int LatticeLM::main(int argc, char** argv) {
   po::options_description desc("*** latticelm (by Graham Neubig) ***");
   desc.add_options()
@@ -22,6 +42,7 @@ int LatticeLM::main(int argc, char** argv) {
       ("train_file", po::value<string>()->default_value(""), "Training file")
       ("train_ref", po::value<string>()->default_value(""), "Training reference file containing true phoneme strings (optional)")
       ("file_format", po::value<string>()->default_value("text"), "The format of the lattices in the input file")
+      ("model_type", po::value<string>()->default_value("pylm"), "Model type (hierlm to do segmentation and LM learning, pylm to just do lm learning)")
       ("beam", po::value<int>()->default_value(0), "Beam size")
       ("epochs", po::value<int>()->default_value(100), "Epochs")
       ("word_n", po::value<int>()->default_value(3), "Length of word n-grams")
@@ -54,30 +75,18 @@ int LatticeLM::main(int argc, char** argv) {
   word_n_ = vm["word_n"].as<int>();
   lattice_weight_ = vm["lattice_weight"].as<float>();
   file_format_ = vm["file_format"].as<string>();
+  model_type_ = vm["model_type"].as<string>();
 
   GlobalVars::Init(vm["verbose"].as<int>(), vm["seed"].as<int>());
 
   // Load data
   vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, vm["train_file"].as<string>(), cids_);
-  vector<int> order(lattices.size()); std::iota(order.begin(), order.end(), 0);
 
   // Create the hierarchical LM
-  HierarchicalLM hlm(cids_.size(), char_n_, word_n_);
-
-  // Sentences of words
-  vector<Sentence> sentences;
-  
-  for(int epoch = 1; epoch <= epochs_; epoch++) {
-    LLStats ep_stats;
-    std::shuffle(order.begin(), order.end(), *GlobalVars::rndeng);
-    for(int sid : order) {
-      if(epoch != 1)
-        hlm.RemoveSample(sentences[sid]);
-      sentences[sid] = hlm.CreateSample(*lattices[sid], lattice_weight_, ep_stats);
-      hlm.AddSample(sentences[sid]);
-    }
-    cerr << "Finished epoch " << epoch << ": char=" << ep_stats.words_ << ", ppl=" << ep_stats.CalcPPL() << " (s=" << time_.Elapsed() << endl;
-    hlm.ResampleParameters();
+  if(model_type_ == "pylm") {
+    PYLM pylm(cids_.size(), char_n_);
+  } else if(model_type_ == "hierlm") {
+    HierarchicalLM hlm(cids_.size(), char_n_, word_n_);
   }
 
   return 0;
