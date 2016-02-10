@@ -17,7 +17,7 @@ public:
   void AddSample(const Sentence & sent);
 
   // Create a sample from the lattice
-  Sentence CreateSample(const DataLattice & lat, float lattice_weight, LLStats & stats);
+  Sentence CreateSample(const DataLattice & lat, LLStats & stats);
 
   // Resample the parameters
   void ResampleParameters() {
@@ -26,7 +26,7 @@ public:
   }
 
 protected:
-  PYLM char_lm_, word_lm_;
+  Pylm char_lm_, word_lm_;
   SymbolSet<Sentence> word_ids_;
   std::vector<WordId> word_ids_stale_;
 

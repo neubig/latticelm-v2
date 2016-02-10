@@ -27,7 +27,7 @@ void LatticeLM::PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm
     for(int sid : order) {
       if(epoch != 1)
         lm.RemoveSample(sentences[sid]);
-      sentences[sid] = lm.CreateSample(*lattices[sid], lattice_weight_, ep_stats);
+      sentences[sid] = lm.CreateSample(*lattices[sid], ep_stats);
       lm.AddSample(sentences[sid]);
     }
     cerr << "Finished epoch " << epoch << ": char=" << ep_stats.words_ << ", ppl=" << ep_stats.CalcPPL() << " (s=" << time_.Elapsed() << endl;
@@ -80,13 +80,15 @@ int LatticeLM::main(int argc, char** argv) {
   GlobalVars::Init(vm["verbose"].as<int>(), vm["seed"].as<int>());
 
   // Load data
-  vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, vm["train_file"].as<string>(), cids_);
+  vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, lattice_weight_, vm["train_file"].as<string>(), cids_);
 
   // Create the hierarchical LM
   if(model_type_ == "pylm") {
-    PYLM pylm(cids_.size(), char_n_);
+    Pylm pylm(cids_.size(), char_n_);
+    PerformTraining(lattices, pylm);
   } else if(model_type_ == "hierlm") {
     HierarchicalLM hlm(cids_.size(), char_n_, word_n_);
+    PerformTraining(lattices, hlm);
   }
 
   return 0;

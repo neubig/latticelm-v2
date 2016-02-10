@@ -13,6 +13,6 @@ void HierarchicalLM::AddSample(const Sentence & sent) {
   THROW_ERROR("AddSample not implemented yet");
 }
 
-Sentence HierarchicalLM::CreateSample(const DataLattice & lattice, float lattice_weight, LLStats & stats) {
+Sentence HierarchicalLM::CreateSample(const DataLattice & lattice, LLStats & stats) {
   THROW_ERROR("CreateSample not implemented yet");
 }

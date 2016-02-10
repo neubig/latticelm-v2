@@ -1,20 +1,28 @@
 #include <latticelm/pylm.h>
+#include <latticelm/pylm-fst.h>
 #include <latticelm/macros.h>
+#include <latticelm/sampgen.h>
+#include <fst/compose.h>
 
 using namespace latticelm;
+using namespace fst;
 
-void PYLM::ResampleParameters() {
-  THROW_ERROR("PYLM::ResampleParameters");
+void Pylm::ResampleParameters() {
+  THROW_ERROR("Pylm::ResampleParameters");
 }
 
-void PYLM::RemoveSample(const Sentence & sent) {
-  THROW_ERROR("PYLM::RemoveSample not implemented yet");
+void Pylm::RemoveSample(const Sentence & sent) {
+  THROW_ERROR("Pylm::RemoveSample not implemented yet");
 }
 
-void PYLM::AddSample(const Sentence & sent) {
-  THROW_ERROR("PYLM::AddSample not implemented yet");
+void Pylm::AddSample(const Sentence & sent) {
+  THROW_ERROR("Pylm::AddSample not implemented yet");
 }
 
-Sentence PYLM::CreateSample(const DataLattice & lattice, float lattice_weight, LLStats & stats) {
-  THROW_ERROR("PYLM::CreateSample not implemented yet");
+Sentence Pylm::CreateSample(const DataLattice & lattice, LLStats & stats) {
+  PylmFst<StdArc> pylm_fst(*this);
+  StdComposeFst composed_fst(lattice.GetFst(), pylm_fst);
+  StdVectorFst sample_fst;
+  SampGen(composed_fst, sample_fst);
+  return FstToSent(sample_fst);
 }

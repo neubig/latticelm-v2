@@ -16,9 +16,11 @@ public:
   DataLattice() { }
   ~DataLattice() { }
  
-  static std::vector<DataLatticePtr> ReadFromFile(const std::string & format, const std::string & filename, SymbolSet<std::string> & dict);
-  static std::vector<DataLatticePtr> ReadFromTextFile(const std::string & filename, SymbolSet<std::string> & dict);
-  static std::vector<DataLatticePtr> ReadFromOpenFSTFile(const std::string & filename, SymbolSet<std::string> & dict);
+  static std::vector<DataLatticePtr> ReadFromFile(const std::string & format, float weight, const std::string & filename, SymbolSet<std::string> & dict);
+  static std::vector<DataLatticePtr> ReadFromTextFile(const std::string & filename, float weight, SymbolSet<std::string> & dict);
+  static std::vector<DataLatticePtr> ReadFromOpenFSTFile(const std::string & filename, float weight, SymbolSet<std::string> & dict);
+
+  const fst::StdVectorFst & GetFst() const { return fst_; }
 
 protected:
   fst::StdVectorFst fst_;

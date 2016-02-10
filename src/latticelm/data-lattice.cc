@@ -6,17 +6,17 @@ using namespace latticelm;
 using namespace std;
 using namespace fst;
 
-vector<DataLatticePtr> DataLattice::ReadFromFile(const std::string & format, const std::string & filename, SymbolSet<string> & dict) {
+vector<DataLatticePtr> DataLattice::ReadFromFile(const std::string & format, float weight, const std::string & filename, SymbolSet<string> & dict) {
   if(format == "text") {
-    return ReadFromTextFile(filename, dict);
+    return ReadFromTextFile(filename, weight, dict);
   } else if (format == "openfst") {
-    return ReadFromOpenFSTFile(filename, dict);
+    return ReadFromOpenFSTFile(filename, weight, dict);
   } else {
     THROW_ERROR("Illegal file format: " << format);
   }
 }
 
-vector<DataLatticePtr> DataLattice::ReadFromTextFile(const std::string & filename, SymbolSet<string> & dict) {
+vector<DataLatticePtr> DataLattice::ReadFromTextFile(const std::string & filename, float weight, SymbolSet<string> & dict) {
   string line;
   ifstream in(filename);
   if(!in) THROW_ERROR("Could not open " << filename);
@@ -35,6 +35,6 @@ vector<DataLatticePtr> DataLattice::ReadFromTextFile(const std::string & filenam
   return ret;
 }
 
-vector<DataLatticePtr> DataLattice::ReadFromOpenFSTFile(const std::string & filename, SymbolSet<string> & dict) {
+vector<DataLatticePtr> DataLattice::ReadFromOpenFSTFile(const std::string & filename, float weight, SymbolSet<string> & dict) {
   THROW_ERROR("DataLattice::ReadFromOpenFSTFile not implemented");
 }
