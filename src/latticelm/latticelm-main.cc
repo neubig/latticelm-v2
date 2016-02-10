@@ -1,11 +1,9 @@
 
-#include <latticlem/latticlem-train.h>
-#include <cnn/init.h>
+#include <latticelm/latticelm.h>
 
 using namespace latticelm;
 
 int main(int argc, char** argv) {
-    cnn::Initialize(argc, argv);
-    LatticeLMTrain train;
+    LatticeLM train;
     return train.main(argc, argv);
 }

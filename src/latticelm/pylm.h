@@ -5,7 +5,7 @@ namespace latticelm {
 class PYLM {
 
 public:
-  PYLM(int order) order_(order) { }
+  PYLM(int order) : order_(order) { }
   ~PYLM() { }
 
   void ResampleParameters();

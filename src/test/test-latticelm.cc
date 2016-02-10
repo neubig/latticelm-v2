@@ -5,9 +5,6 @@
 // Set up CNN
 struct LatticeLMBasic {
     LatticeLMBasic()   { 
-        int zero = 0;
-        char** null = NULL;
-        cnn::Initialize(zero, null);
     }
     ~LatticeLMBasic()  { /* shutdown your allocator/check memory leaks here */ }
 };

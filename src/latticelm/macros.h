@@ -4,12 +4,15 @@
 #include <stdexcept>
 #include <iostream>
 #include <vector>
+#include <random>
 
 namespace latticelm {
 
 class GlobalVars { 
 public:
-    static int verbose;
+  static void Init(int verbose, unsigned seed);
+  static int verbose;
+  static std::mt19937* rndeng;
 };
 
 }

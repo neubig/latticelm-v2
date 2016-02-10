@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace lamtram {
+namespace latticelm {
 
 class LLStats {
 
@@ -18,7 +18,7 @@ public:
         return *this;
     }
 
-    cnn::real CalcPPL() {
+    float CalcPPL() {
         return exp(-lik_/words_);
     }
 

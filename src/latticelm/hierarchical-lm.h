@@ -28,7 +28,7 @@ public:
 protected:
   int char_types_;
   PYLM char_lm_, word_lm_;
-  SymbolSet word_ids_;
+  SymbolSet<Sentence> word_ids_;
   std::vector<WordId> word_ids_stale_;
 
 };

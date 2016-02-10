@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.59])
 AC_INIT([latticelm], [0.1.0], [neubig@gmail.com])
-AC_CONFIG_SRCDIR(src/latticelm/latticelm-train.cc)
+AC_CONFIG_SRCDIR(src/latticelm/latticelm.cc)
 AC_CONFIG_HEADERS([src/latticelm/config.h])
 AC_CONFIG_FILES([
     Makefile
@@ -26,7 +26,7 @@ AC_LANG_CPLUSPLUS
 
 # Check for OPENFST
 AC_ARG_WITH(openfst,
-	[AC_HELP_STRING([--with-openfst=DIR], [openfst in DIR])],
+	[AC_HELP_STRING([--with-openfst=DIR], [src in DIR])],
 	[openfst_dir="${withval}"], [openfst_dir=''])
 if test "x$openfst_dir" != "x"; then
   OPENFST_CPPFLAGS="-I${openfst_dir}/src/include"
