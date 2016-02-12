@@ -10,7 +10,7 @@ Sentence ParseSentence(const std::string & str, SymbolSet<std::string> & ids) {
   string my_str;
   Sentence ret;
   while(iss >> my_str)
-    ret.push_back(ids.GetId(str));
+    ret.push_back(ids.GetId(my_str));
   return ret;
 }
 

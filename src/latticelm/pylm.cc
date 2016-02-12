@@ -20,10 +20,11 @@ void Pylm::AddSample(const Sentence & sent) {
 }
 
 Sentence Pylm::CreateSample(const DataLattice & lattice, LLStats & stats) {
-  StdVectorFst sample_fst;
   PylmFst<StdArc> pylm_fst(*this);
-  SampGen(pylm_fst, sample_fst);
-  // StdComposeFst composed_fst(lattice.GetFst(), pylm_fst);
-  // SampGen(composed_fst, sample_fst);
+  // StdVectorFst vec_lattice_fst(lattice.GetFst()); vec_lattice_fst.Write("lattice.txt");
+  StdVectorFst vec_pylm_fst(pylm_fst); cerr << "WARINING: not using dynamic PyLM, should be fixed" << endl;
+  StdComposeFst composed_fst(lattice.GetFst(), vec_pylm_fst);
+  StdVectorFst sample_fst;
+  SampGen(composed_fst, sample_fst);
   return FstToSent(sample_fst);
 }

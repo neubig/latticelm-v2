@@ -20,7 +20,7 @@ void LatticeLM::PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm
 
   // Perform training
   vector<int> order(lattices.size()); std::iota(order.begin(), order.end(), 0);
-  vector<Sentence> sentences;
+  vector<Sentence> sentences(lattices.size());
   for(int epoch = 1; epoch <= epochs_; epoch++) {
     std::shuffle(order.begin(), order.end(), *GlobalVars::rndeng);
     LLStats ep_stats;
@@ -78,6 +78,11 @@ int LatticeLM::main(int argc, char** argv) {
   model_type_ = vm["model_type"].as<string>();
 
   GlobalVars::Init(vm["verbose"].as<int>(), vm["seed"].as<int>());
+
+  // Initialize the vocabulary
+  cids_.GetId("<eps>");
+  cids_.GetId("<s>");
+  cids_.GetId("</s>");
 
   // Load data
   vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, lattice_weight_, vm["train_file"].as<string>(), cids_);

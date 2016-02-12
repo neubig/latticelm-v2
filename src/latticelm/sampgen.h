@@ -153,6 +153,7 @@ Sentence FstToSent(const fst::Fst<A> & ifst) {
     if(aiter.Done()) break;
     const A& a = aiter.Value();
     if(a.olabel != 0) ret.push_back(a.olabel);
+    sid = a.nextstate;
   }
   return ret;
 }
