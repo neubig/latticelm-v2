@@ -49,7 +49,7 @@ unsigned SampleWeights(vector<float> & ws, float anneal = 1) {
       break;
   }
   if(i == ws.size()) {
-    cerr << "WARNING: Sampling failed, probability mass left at end of cycle";
+    cerr << "WARNING: Sampling failed, probability mass left at end of cycle" << endl;
     i--;
   }
   return i;

@@ -87,13 +87,12 @@ public:
   std::vector<PylmState> & GetStates() { return states_; }
 
   // Remove or add a sample to the statistics
-  void RemoveSample(const Sentence & sent, const vector<float> & bases, vector<bool> & fellback);
+  void RemoveSample(const Sentence & sent, vector<bool> & fellback);
   void AddSample(const Sentence & sent, const vector<float> & bases, vector<bool> & fellback);
 
   void RemoveSample(const Sentence & sent) { 
-    vector<float> bases;
     vector<bool> fellback;
-    RemoveSample(sent, bases, fellback);
+    RemoveSample(sent, fellback);
   }
   void AddSample(const Sentence & sent) {
     vector<float> bases;
@@ -102,7 +101,7 @@ public:
   }
 
   bool AddNgram(const Sentence & ngram, float base);
-  bool RemoveNgram(const Sentence & ngram, float base);
+  bool RemoveNgram(const Sentence & ngram);
 
   // Create a sample from the lattice
   Sentence CreateSample(const DataLattice & lat, LLStats & stats);  

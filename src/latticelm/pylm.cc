@@ -64,23 +64,50 @@ std::vector<PylmWordProbState> Pylm::CalcWordProbStates(int sid) {
 }
 
 void Pylm::ResampleParameters() {
-  THROW_ERROR("Pylm::ResampleParameters");
+  cerr << "WARNING: Pylm::ResampleParameters not implemented yet." << endl;
+  // THROW_ERROR("Pylm::ResampleParameters");
 }
 
-bool Pylm::RemoveNgram(const Sentence & ngram, float base) {
-  THROW_ERROR("Pylm::RemoveNgram not implemented yet");
+bool Pylm::RemoveNgram(const Sentence & ngram) {
+  int j, state = 0;
+  for(j = 0; j < ngram.size()-1; j++) {
+    state = GetChildStateId(state, ngram[j], false);
+    assert(state != -1);
+  }
+  PylmStateLink* link = GetChildStateLink(state, ngram[j], false);
+  assert(link != NULL && link->total_customers != 0);
+  std::uniform_int_distribution<int> ud(1, link->total_customers);
+  int left = ud(*GlobalVars::rndeng);
+  link->total_customers--;
+  states_[state].total_customers--;
+  for(int t = 0; t < link->customers.size(); t++) {
+    left -= link->customers[t];
+    if(left <= 0) {
+      if(link->customers[t] == 1) {
+        link->customers.erase(link->customers.begin()+t);
+        if(ngram.size() == 1)
+          return true;
+        Sentence new_ngram(ngram);
+        new_ngram.erase(new_ngram.begin());
+        return RemoveNgram(new_ngram);
+      } else {
+        link->customers[t]--;
+        return false;
+      }
+    }
+  }
+  THROW_ERROR("Overflowed RemoveNgram");
 }
 
-void Pylm::RemoveSample(const Sentence & sent, const vector<float> & bases, vector<bool> & fellback) {
-  assert(base_size_ != 0 || (bases.size() == fellback.size() && bases.size() == sent.size()));
+void Pylm::RemoveSample(const Sentence & sent, vector<bool> & fellback) {
   Sentence ngram(1,1);
   for(size_t i = 0; i < sent.size(); i++) {
     if(ngram.size() >= order_) ngram.erase(ngram.begin());
     ngram.push_back(sent[i]);
-    if(bases.size()) {
-      fellback[i] = RemoveNgram(ngram, bases[i]);
+    if(fellback.size()) {
+      fellback[i] = RemoveNgram(ngram);
     } else {
-      RemoveNgram(ngram, 1.f/base_size_);
+      RemoveNgram(ngram);
     }
   }
 }
