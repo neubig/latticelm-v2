@@ -41,4 +41,5 @@ TODOs that would be nice to fix:
 * Trim nodes that have no customers
 * Implement beam search/slice sampling
 * Implement Metropolis-Hastings
-* Tests
+* Ability to evaluate phoneme error rate during learning
+* Unit tests
