@@ -59,7 +59,7 @@ public:
       vector<PylmWordProbState> probs = pylm_->CalcWordProbStates(stateId);
       for(auto & prob : probs) {
         /* cerr << stateId << "->" << prob.state << ":" << prob.word << "/" << prob.word << "(" << log(prob.prob) << ")" << endl; */
-        logs->push_back(A(prob.word, prob.word, log(prob.prob), prob.state));
+        logs->push_back(A(prob.word, prob.word, -log(prob.prob), prob.state));
       }
       arcs_[stateId] = logs;
     }

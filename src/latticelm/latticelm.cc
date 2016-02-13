@@ -30,7 +30,7 @@ void LatticeLM::PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm
       sentences[sid] = lm.CreateSample(*lattices[sid], ep_stats);
       lm.AddSample(sentences[sid]);
     }
-    cerr << "Finished epoch " << epoch << ": char=" << ep_stats.words_ << ", ppl=" << ep_stats.CalcPPL() << " (s=" << time_.Elapsed() << endl;
+    cerr << "Finished epoch " << epoch << ": char=" << ep_stats.words_ << ", ppl=" << ep_stats.CalcPPL() << " (s=" << time_.Elapsed() << ")" << endl;
     lm.ResampleParameters();
   }
 }
@@ -45,8 +45,8 @@ int LatticeLM::main(int argc, char** argv) {
       ("model_type", po::value<string>()->default_value("pylm"), "Model type (hierlm to do segmentation and LM learning, pylm to just do lm learning)")
       ("beam", po::value<int>()->default_value(0), "Beam size")
       ("epochs", po::value<int>()->default_value(100), "Epochs")
-      ("word_n", po::value<int>()->default_value(3), "Length of word n-grams")
-      ("char_n", po::value<int>()->default_value(3), "Length of character n-grams")
+      ("word_n", po::value<int>()->default_value(2), "Length of word n-grams")
+      ("char_n", po::value<int>()->default_value(2), "Length of character n-grams")
       ("model_in", po::value<string>()->default_value(""), "The file to read the model to")
       ("model_out", po::value<string>()->default_value(""), "The file to write the final model to")
       ("seed", po::value<int>()->default_value(0), "The random seed, or 0 to change every time")

@@ -9,6 +9,16 @@
 
 namespace latticelm {
 
+inline float neglogsumexp(const vector<float> & probs) {
+    float m = probs[0];
+    for(int i = 1; i < (int)probs.size(); i++)
+        m = fmin(m, probs[i]);
+    float ret = 0;
+    for(int i = 0; i < (int)probs.size(); i++)
+        ret += exp(m-probs[i]);
+    return log(ret)-m;
+}  
+
 // sample a single value appropriately from a vector of weights
 unsigned SampleWeights(vector<float> & ws, float anneal = 1) {
 
@@ -46,7 +56,7 @@ unsigned SampleWeights(vector<float> & ws, float anneal = 1) {
 }
 
 template<class A>
-void SampGen(const fst::Fst<A> & ifst, fst::MutableFst<A> & ofst, unsigned nbest = 1, float anneal = 1) { 
+float SampGen(const fst::Fst<A> & ifst, fst::MutableFst<A> & ofst, unsigned nbest = 1, float anneal = 1) { 
   typedef fst::Fst<A> F;
   typedef typename F::Weight W;
   typedef typename A::StateId S;
@@ -105,20 +115,23 @@ void SampGen(const fst::Fst<A> & ifst, fst::MutableFst<A> & ofst, unsigned nbest
   ofst.AddState();
   ofst.SetStart(0);
 
+  // find the final states and sample a final state
+  vector< float > stateCandWeights;
+  vector< S > stateCandIds;
+  for (fst::StateIterator< fst::Fst<A> > siter(ifst); !siter.Done(); siter.Next()) {
+    S s = siter.Value();
+    // cerr << "stateWeights[" << s << "] == " << stateWeights[s].Value() << endl;
+    float w = Times(ifst.Final(s),stateWeights[s]).Value();
+    if(w != fst::numeric_limits<float>::infinity()) {
+      // cout << "Final state "<<s<<","<<w<<endl;
+      stateCandWeights.push_back( w );
+      stateCandIds.push_back( s );
+    }
+  }
+  float ret = neglogsumexp(stateCandWeights);
+
   for(unsigned n = 0; n < nbest; n++) {
 
-    // find the final states and sample a final state
-    vector< float > stateCandWeights;
-    vector< S > stateCandIds;
-    for (fst::StateIterator< fst::Fst<A> > siter(ifst); !siter.Done(); siter.Next()) {
-      S s = siter.Value();
-      float w = Times(ifst.Final(s),stateWeights[s]).Value();
-      if(w != fst::numeric_limits<float>::infinity()) {
-        // cout << "Final state "<<s<<","<<w<<endl;
-        stateCandWeights.push_back( w );
-        stateCandIds.push_back( s );
-      }
-    }
     S currState = stateCandIds[SampleWeights(stateCandWeights, anneal)];
 
     // add the final state
@@ -140,6 +153,8 @@ void SampGen(const fst::Fst<A> & ifst, fst::MutableFst<A> & ofst, unsigned nbest
     }
   
   }
+
+  return ret;
 
 }
 

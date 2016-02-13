@@ -29,15 +29,25 @@ public:
 
 class PylmState {
 public:
-  PylmState(WordId w, int l, int p) : wid(w), level(l), parent(p), children(), total_customers(0), total_tables(0) { }
+  PylmState(WordId w, int l, int p) : wid(w), level(l), backoff_sid(p), children(), total_customers(0), total_tables(0) { }
+
+  float CalcProb(const PylmStateLink & link, const pair<float,float> & param) {
+    return (link.total_customers-link.customers.size()*param.second)/(total_customers+param.first);
+  }
 
   PylmWordProbState CalcWPS(const PylmStateLink & link, const pair<float,float> & param) {
-    return PylmWordProbState(link.wid, (link.total_customers-link.customers.size()*param.second)/(total_customers+param.first), link.sid);
+    return PylmWordProbState(link.wid, CalcProb(link,param), link.sid);
   }
+
+  // Calculate the backoff probability for a state
+  float CalcBackoff(const std::pair<float,float> & param) {
+    return (total_tables*param.second + param.first)/(total_customers+param.first);
+  }
+
 
   WordId wid;
   int level;
-  int parent;
+  int backoff_sid;
   vector<PylmStateLink> children;
   int total_customers, total_tables;
 };
@@ -57,27 +67,12 @@ public:
     return init_state_id_;
   }
 
+
+  PylmStateLink * GetChildStateLink(int sid, WordId wid, bool add);
+
   int GetChildStateId(int sid, WordId wid, bool add) {
-    if(sid >= states_.size()) THROW_ERROR("State overflow");
-    vector<PylmStateLink> & chil = states_[sid].children;
-    int low = 0, range = chil.size(), mid;
-    while(range) {
-      mid = low+range/2;
-      if(chil[mid].wid > wid) {
-        range = mid-low;
-      } else if(chil[mid].wid < wid) {
-        range -= mid-low+1;
-        low = mid+1;
-      } else {
-        return chil[mid].sid;
-      }
-    }
-    if(add) {
-      chil.insert(chil.begin()+low, PylmStateLink(states_.size(), wid, 0));
-      states_.push_back(PylmState(wid, states_[sid].level+1, sid));
-      return states_.size()-1;
-    }
-    return -1; 
+    PylmStateLink * link = GetChildStateLink(sid, wid, add);
+    return link ? link->sid : -1;
   }
 
   PylmState & GetState(int sid) {
@@ -87,38 +82,27 @@ public:
 
   // Calculate the output for words, probabilities, and states for a particular
   // state in the LM tree. Word 0 is the fallback.
-  std::vector<PylmWordProbState> CalcWordProbStates(int sid) {
-    PylmState & state = states_[sid];
-    std::vector<PylmWordProbState> wps;
-    if(state.wid == 2) return wps; // If we're at the final state, we don't do anything
-    pair<float,float> & param = params_[state.level];
-    // If we're at the top state, calculate everything, but no backoff
-    if(state.level == 0 && base_size_ > 0) {
-      float base_prob = 1.f/base_size_;
-      auto it = state.children.begin();
-      for(int i = 1; i <= base_size_; i++) {
-        if(it != state.children.end() && it->wid == i) {
-          wps.push_back(state.CalcWPS(*it++, param));
-          wps.rbegin()->prob += base_prob;
-        } else {
-          wps.push_back(PylmWordProbState(i, base_prob, 0));
-        }
-      }
-    // Otherwise, calculate a backoff and only some things
-    } else {
-      float fallback_prob = (state.total_tables*param.second + param.first)/(state.total_customers+param.first);
-      wps.push_back(PylmWordProbState(0,fallback_prob,0));
-      for(auto & itval : state.children)
-        wps.push_back(state.CalcWPS(itval, param));
-    }
-    return wps;
-  }
+  std::vector<PylmWordProbState> CalcWordProbStates(int sid);
   
   std::vector<PylmState> & GetStates() { return states_; }
 
   // Remove or add a sample to the statistics
-  void RemoveSample(const Sentence & sent);
-  void AddSample(const Sentence & sent);
+  void RemoveSample(const Sentence & sent, const vector<float> & bases, vector<bool> & fellback);
+  void AddSample(const Sentence & sent, const vector<float> & bases, vector<bool> & fellback);
+
+  void RemoveSample(const Sentence & sent) { 
+    vector<float> bases;
+    vector<bool> fellback;
+    RemoveSample(sent, bases, fellback);
+  }
+  void AddSample(const Sentence & sent) {
+    vector<float> bases;
+    vector<bool> fellback;
+    AddSample(sent, bases, fellback);
+  }
+
+  bool AddNgram(const Sentence & ngram, float base);
+  bool RemoveNgram(const Sentence & ngram, float base);
 
   // Create a sample from the lattice
   Sentence CreateSample(const DataLattice & lat, LLStats & stats);  
