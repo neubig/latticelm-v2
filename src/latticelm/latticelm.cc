@@ -85,8 +85,13 @@ int LatticeLM::main(int argc, char** argv) {
   cids_.GetId("<s>");
   cids_.GetId("</s>");
 
+  // Initialize the translation vocabulary
+  trans_ids_.GetId("<eps>");
+  trans_ids_.GetId("<s>");
+  trans_ids_.GetId("</s>");
+
   // Load data
-  vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, lattice_weight_, vm["train_file"].as<string>(), vm["trans_file"].as<string>(), cids_);
+  vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, lattice_weight_, vm["train_file"].as<string>(), vm["trans_file"].as<string>(), cids_, trans_ids_);
 
   // Create the hierarchical LM
   if(model_type_ == "pylm") {
