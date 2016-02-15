@@ -100,6 +100,9 @@ int LatticeLM::main(int argc, char** argv) {
   } else if(model_type_ == "hierlm") {
     HierarchicalLM hlm(cids_.size(), char_n_, word_n_);
     PerformTraining(lattices, hlm);
+  } else if(model_type == "lextm") {
+    LexicalTM tm(cids_.size());
+    PerformTraining(lattices, tm);
   }
 
   return 0;
