@@ -57,7 +57,7 @@ void DataLattice::ReadTranslations(vector<DataLatticePtr> data_lattices, const s
   while(getline(in, line)) {
     // Tokenize the string using whitespace.
     Sentence sent = ParseSentence(line, trans_dict);
-    data_lattices[i++]->translation_ = sent;
+    data_lattices[i++]->setTranslation(sent);
   }
   if(i != data_lattices.size()) THROW_ERROR("Number of lattices and number of translations are not equal.");
 }

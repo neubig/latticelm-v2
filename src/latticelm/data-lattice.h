@@ -6,6 +6,7 @@
 #include <iterator>
 #include <fst/vector-fst.h>
 #include <latticelm/symbol-set.h>
+#include <latticelm/sentence.h>
 
 namespace latticelm {
 
@@ -25,6 +26,12 @@ public:
 
   const fst::StdVectorFst & GetFst() const { return fst_; }
 
+  Sentence getTranslation() {
+    return translation_;
+  }
+  void setTranslation(Sentence translation) {
+    translation_ = translation;
+  }
 
 protected:
   fst::StdVectorFst fst_;
