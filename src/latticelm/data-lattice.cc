@@ -6,14 +6,19 @@ using namespace latticelm;
 using namespace std;
 using namespace fst;
 
-vector<DataLatticePtr> DataLattice::ReadFromFile(const std::string & format, float weight, const std::string & filename, SymbolSet<string> & dict) {
+vector<DataLatticePtr> DataLattice::ReadFromFile(const std::string & format, float weight, const std::string & filename, const std::string & trans_filename, SymbolSet<string> & dict) {
+  vector<DataLatticePtr> data_lattices;
   if(format == "text") {
-    return ReadFromTextFile(filename, weight, dict);
+    data_lattices = ReadFromTextFile(filename, weight, dict);
   } else if (format == "openfst") {
-    return ReadFromOpenFSTFile(filename, weight, dict);
+    data_lattices = ReadFromOpenFSTFile(filename, weight, dict);
   } else {
     THROW_ERROR("Illegal file format: " << format);
   }
+  if(!trans_filename.empty()) {
+    DataLattice::ReadTranslations(data_lattices, trans_filename);
+  }
+  return data_lattices;
 }
 
 vector<DataLatticePtr> DataLattice::ReadFromTextFile(const std::string & filename, float weight, SymbolSet<string> & dict) {
@@ -40,4 +45,23 @@ vector<DataLatticePtr> DataLattice::ReadFromTextFile(const std::string & filenam
 
 vector<DataLatticePtr> DataLattice::ReadFromOpenFSTFile(const std::string & filename, float weight, SymbolSet<string> & dict) {
   THROW_ERROR("DataLattice::ReadFromOpenFSTFile not implemented");
+}
+
+void DataLattice::ReadTranslations(vector<DataLatticePtr> data_lattices, const string & trans_filename) {
+  // Assuming each line in the translation file corresponds to one lattice, we iterate
+  // through the already loaded lattices and give them their corresponding translation.
+  string line;
+  istringstream * buf;
+  vector<std::string> * line_split;
+  ifstream in(trans_filename);
+  if(!in) THROW_ERROR("Could not open " << trans_filename);
+  int i = 0;
+  while(getline(in, line)) {
+    // Tokenize the string using whitespace.
+    buf = new istringstream(line);
+    line_split = new vector<string>;
+    copy(istream_iterator<string>(*buf), istream_iterator<string>(), back_inserter(*line_split));
+    data_lattices[i++]->translation_ = *line_split;
+  }
+  if(i != data_lattices.size()) THROW_ERROR("Number of lattices and number of translations are not equal.");
 }
