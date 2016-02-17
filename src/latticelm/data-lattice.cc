@@ -68,7 +68,7 @@ vector<DataLatticePtr> DataLattice::ReadFromOpenFSTFile(const std::string & file
   StdVectorFst::StateId num_states = last_id + 1;
   StdVectorFst::StateId to_state;
   while(getline(in, line)) {
-    if(line == "\n") {
+    if(line == "") {
       // If there are no more lines after this, let's leave this loop.
       if(!getline(in, line)) {
         break;
@@ -76,10 +76,10 @@ vector<DataLatticePtr> DataLattice::ReadFromOpenFSTFile(const std::string & file
       // Otherwise wrap up this lattice and initialize a new one.
       ptr->fst_.SetFinal(to_state, StdArc::Weight::One());
       ret.push_back(ptr);
-      DataLatticePtr ptr(new DataLattice);
+      ptr = DataLatticePtr(new DataLattice);
       StdVectorFst::StateId last_id = ptr->fst_.AddState();
       ptr->fst_.SetStart(last_id);
-      StdVectorFst::StateId num_states = last_id + 1;
+      num_states = last_id + 1;
     }
     // Read in tokens
     vector<string> line_tokens;
