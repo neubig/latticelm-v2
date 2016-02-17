@@ -16,6 +16,10 @@ namespace po = boost::program_options;
 
 namespace latticelm {
 
+void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, LexicalTM & tm) {
+  cout << "Training, yo" << endl;
+}
+
 template <class LM>
 void LatticeLM::PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm) {
 
@@ -103,7 +107,7 @@ int LatticeLM::main(int argc, char** argv) {
     PerformTraining(lattices, hlm);
   } else if(model_type_ == "lextm") {
     LexicalTM tm(cids_.size(), trans_ids_.size());
-    PerformTraining(lattices, tm);
+    PerformTrainingLexTM(lattices, tm);
   }
 
   return 0;
