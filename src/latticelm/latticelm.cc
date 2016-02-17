@@ -7,6 +7,7 @@
 #include <latticelm/latticelm.h>
 #include <latticelm/data-lattice.h>
 #include <latticelm/hierarchical-lm.h>
+#include <latticelm/lexical-tm.h>
 #include <latticelm/ll-stats.h>
 #include <latticelm/macros.h>
 
@@ -100,8 +101,8 @@ int LatticeLM::main(int argc, char** argv) {
   } else if(model_type_ == "hierlm") {
     HierarchicalLM hlm(cids_.size(), char_n_, word_n_);
     PerformTraining(lattices, hlm);
-  } else if(model_type == "lextm") {
-    LexicalTM tm(cids_.size());
+  } else if(model_type_ == "lextm") {
+    LexicalTM tm(cids_.size(), trans_ids_.size());
     PerformTraining(lattices, tm);
   }
 
