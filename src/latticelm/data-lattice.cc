@@ -6,14 +6,19 @@ using namespace latticelm;
 using namespace std;
 using namespace fst;
 
-vector<DataLatticePtr> DataLattice::ReadFromFile(const std::string & format, float weight, const std::string & filename, SymbolSet<string> & dict) {
+vector<DataLatticePtr> DataLattice::ReadFromFile(const std::string & format, float weight, const std::string & filename, const std::string & trans_filename, SymbolSet<string> & dict, SymbolSet<string> & trans_dict) {
+  vector<DataLatticePtr> data_lattices;
   if(format == "text") {
-    return ReadFromTextFile(filename, weight, dict);
+    data_lattices = ReadFromTextFile(filename, weight, dict);
   } else if (format == "openfst") {
-    return ReadFromOpenFSTFile(filename, weight, dict);
+    data_lattices = ReadFromOpenFSTFile(filename, weight, dict);
   } else {
     THROW_ERROR("Illegal file format: " << format);
   }
+  if(!trans_filename.empty()) {
+    DataLattice::ReadTranslations(data_lattices, trans_filename, trans_dict);
+  }
+  return data_lattices;
 }
 
 vector<DataLatticePtr> DataLattice::ReadFromTextFile(const std::string & filename, float weight, SymbolSet<string> & dict) {
@@ -40,4 +45,19 @@ vector<DataLatticePtr> DataLattice::ReadFromTextFile(const std::string & filenam
 
 vector<DataLatticePtr> DataLattice::ReadFromOpenFSTFile(const std::string & filename, float weight, SymbolSet<string> & dict) {
   THROW_ERROR("DataLattice::ReadFromOpenFSTFile not implemented");
+}
+
+void DataLattice::ReadTranslations(vector<DataLatticePtr> data_lattices, const string & trans_filename, SymbolSet<string> & trans_dict) {
+  // Assuming each line in the translation file corresponds to one lattice, we iterate
+  // through the already loaded lattices and give them their corresponding translation.
+  string line;
+  ifstream in(trans_filename);
+  if(!in) THROW_ERROR("Could not open " << trans_filename);
+  int i = 0;
+  while(getline(in, line)) {
+    // Tokenize the string using whitespace.
+    Sentence sent = ParseSentence(line, trans_dict);
+    data_lattices[i++]->setTranslation(sent);
+  }
+  if(i != data_lattices.size()) THROW_ERROR("Number of lattices and number of translations are not equal.");
 }
