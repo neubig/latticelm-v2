@@ -171,12 +171,12 @@ void Pylm::AddSample(const Sentence & sent, const vector<float> & bases, vector<
 }
 
 Sentence Pylm::CreateSample(const DataLattice & lattice, LLStats & stats) {
-  PylmFst<StdArc> pylm_fst(*this);
-  StdVectorFst vec_lattice_fst(lattice.GetFst()); vec_lattice_fst.Write("lattice.txt");
-  StdVectorFst vec_pylm_fst(pylm_fst); vec_pylm_fst.Write("pylm.txt"); // cerr << "WARNING: not using dynamic PyLM, should be fixed" << endl;
-  StdComposeFst composed_fst(lattice.GetFst(), vec_pylm_fst);
-  StdVectorFst vec_composed_fst(composed_fst); vec_composed_fst.Write("composed.txt"); // cerr << "WARNING: not using dynamic PyLM, should be fixed" << endl;
-  StdVectorFst sample_fst;
+  PylmFst<LogArc> pylm_fst(*this);
+  VectorFst<LogArc> vec_lattice_fst(lattice.GetFst()); vec_lattice_fst.Write("lattice.txt");
+  VectorFst<LogArc> vec_pylm_fst(pylm_fst); vec_pylm_fst.Write("pylm.txt"); // cerr << "WARNING: not using dynamic PyLM, should be fixed" << endl;
+  ComposeFst<LogArc> composed_fst(lattice.GetFst(), vec_pylm_fst);
+  VectorFst<LogArc> vec_composed_fst(composed_fst); vec_composed_fst.Write("composed.txt"); // cerr << "WARNING: not using dynamic PyLM, should be fixed" << endl;
+  VectorFst<LogArc> sample_fst;
   stats.lik_ += SampGen(composed_fst, sample_fst);
   sample_fst.Write("sample.txt");
   Sentence sent = FstToSent(sample_fst);

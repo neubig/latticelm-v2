@@ -8,6 +8,8 @@
 #include <latticelm/symbol-set.h>
 #include <latticelm/sentence.h>
 
+using namespace fst;
+
 namespace latticelm {
 
 class DataLattice;
@@ -24,7 +26,7 @@ public:
   static std::vector<DataLatticePtr> ReadFromOpenFSTFile(const std::string & filename, float weight, SymbolSet<std::string> & dict);
   static void ReadTranslations(vector<DataLatticePtr> data_lattices, const string & trans_filename, SymbolSet<std::string> & trans_dict);
 
-  const fst::StdVectorFst & GetFst() const { return fst_; }
+  const VectorFst<LogArc> & GetFst() const { return fst_; }
 
   const Sentence GetTranslation() const {
     return translation_;
@@ -34,7 +36,7 @@ public:
   }
 
 protected:
-  fst::StdVectorFst fst_;
+  fst::VectorFst<LogArc> fst_;
   // A word-tokenized English translation for building translation models.
   Sentence translation_;
 

@@ -44,7 +44,7 @@ void LexicalTM::PrintParams() {
 /** Create a TM based on the parameters that is constrained by the lattice's translation **/
 VectorFst<LogArc> LexicalTM::CreateReducedTM(const DataLattice & lattice) {
   VectorFst<LogArc> reduced_tm;
-  StdVectorFst::StateId only_state = reduced_tm.AddState();
+  VectorFst<LogArc>::StateId only_state = reduced_tm.AddState();
   reduced_tm.SetStart(only_state);
   reduced_tm.SetFinal(only_state, LogArc::Weight::One());
 
@@ -91,10 +91,10 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
   VectorFst<LogArc> reduced_tm = CreateReducedTM(lattice);
 
   // Compose the lattice with the reduced tm.
-  //StdComposeFst composed_fst(lattice.GetFst(), reduced_tm);
+  //ComposeFst<LogArc> composed_fst(lattice.GetFst(), reduced_tm);
 
   // Sample from the composed Fst.
-  //StdVectorFst sample_fst;
+  //VectorFst<LogArc> sample_fst;
   ///*stats.lik_ +=*/ SampGen(composed_fst, sample_fst);
 
   //Alignment align = FstToAlign(sample_fst);
