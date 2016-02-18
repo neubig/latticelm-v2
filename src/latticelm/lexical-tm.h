@@ -4,6 +4,9 @@
 #include <latticelm/sentence.h>
 #include <latticelm/data-lattice.h>
 #include <fst/vector-fst.h>
+#include <fst/float-weight.h>
+#include <cmath>
+#include <iostream>
 
 namespace latticelm {
 
@@ -15,12 +18,12 @@ public:
     f_vocab_size_ = f_vocab_size;
     e_vocab_size_ = e_vocab_size;
 
-    // Zero the vectors.
+    // Zero the count vectors. Assign uniform log probabilities to the CPD
     for(int i=0; i < f_vocab_size_; i++) {
-      vector<float> cpd_row;
+      vector<fst::LogWeight> cpd_row;
       vector<int> counts_row;
-      for(int j=0; j < f_vocab_size_; j++) {
-        cpd_row.push_back(0.0);
+      for(int j=0; j < e_vocab_size_; j++) {
+        cpd_row.push_back(fst::LogWeight(log(1.0/e_vocab_size)));
         counts_row.push_back(0);
       }
       cpd_.push_back(cpd_row);
@@ -33,7 +36,7 @@ public:
   void AddSample(const Alignment & align);
   Alignment CreateSample(const DataLattice & lat, LLStats & stats);
   void ResampleParameters();
-  fst::StdVectorFst CreateReducedTM(const DataLattice & lattice);
+  fst::VectorFst<fst::LogArc> CreateReducedTM(const DataLattice & lattice);
 
   // Helpful methods
   void PrintParams();
@@ -46,7 +49,7 @@ protected:
 
   // A conditional probability disribution that will give the probability of
   // seeing an English WordId given a German WordId.
-  vector<vector<float>> cpd_;
+  vector<vector<fst::LogWeight>> cpd_;
   // The number of times we've seen a German WordId align to an English WordId.
   vector<vector<int>> counts_;
 

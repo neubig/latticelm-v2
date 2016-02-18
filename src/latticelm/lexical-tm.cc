@@ -42,11 +42,13 @@ void LexicalTM::PrintParams() {
 }
 
 /** Create a TM based on the parameters that is constrained by the lattice's translation **/
-StdVectorFst LexicalTM::CreateReducedTM(const DataLattice & lattice) {
-  StdVectorFst reduced_tm;
+VectorFst<LogArc> LexicalTM::CreateReducedTM(const DataLattice & lattice) {
+  VectorFst<LogArc> reduced_tm;
   StdVectorFst::StateId only_state = reduced_tm.AddState();
   reduced_tm.SetStart(only_state);
-  reduced_tm.SetFinal(only_state, StdArc::Weight::One());
+  reduced_tm.SetFinal(only_state, LogArc::Weight::One());
+
+  PrintParams();
 
   Sentence translation = lattice.GetTranslation();
 
@@ -55,12 +57,12 @@ StdVectorFst LexicalTM::CreateReducedTM(const DataLattice & lattice) {
     // Normalizing the probabilities. Two steps:
     // 1. Find the total probability mass of the English words that occur in
     //    the translation given the foreign word
-    float total = 0;
+    LogWeight total = LogWeight(0);
     for(int j = 0; j < e_vocab_size_; j++) {
       // If the English word is in the translation, then consider these.
       for(int k = 0; k < translation.size(); k++) {
         if(j == translation[k]) {
-          total += cpd_[i][j];
+          total = fst::Plus(total, cpd_[i][j]);
           // We break here because we don't want that English word counted twice. Or do we?
           break;
         }
@@ -72,7 +74,7 @@ StdVectorFst LexicalTM::CreateReducedTM(const DataLattice & lattice) {
       // If the English word is in the translation, then consider these.
       for(int k = 0; k < translation.size(); k++) {
         if(j == translation[k]) {
-          reduced_tm.AddArc(only_state, StdArc(i, j, cpd_[i][j]/total, only_state));
+          reduced_tm.AddArc(only_state, LogArc(i, j, fst::Divide(cpd_[i][j], total), only_state));
           break;
         }
       }
@@ -86,7 +88,7 @@ StdVectorFst LexicalTM::CreateReducedTM(const DataLattice & lattice) {
 Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) {
 
   // Perform reduction on TM to make it conform to the lattice.translation_
-  StdVectorFst reduced_tm = CreateReducedTM(lattice);
+  VectorFst<LogArc> reduced_tm = CreateReducedTM(lattice);
 
   // Compose the lattice with the reduced tm.
   //StdComposeFst composed_fst(lattice.GetFst(), reduced_tm);
