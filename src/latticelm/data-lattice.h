@@ -26,10 +26,10 @@ public:
 
   const fst::StdVectorFst & GetFst() const { return fst_; }
 
-  Sentence getTranslation() {
+  const Sentence GetTranslation() const {
     return translation_;
   }
-  void setTranslation(Sentence translation) {
+  void SetTranslation(Sentence translation) {
     translation_ = translation;
   }
 

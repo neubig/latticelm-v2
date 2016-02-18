@@ -17,7 +17,21 @@ namespace po = boost::program_options;
 namespace latticelm {
 
 void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, LexicalTM & tm) {
-  cout << "Training, yo" << endl;
+  // Perform training
+  vector<int> order(lattices.size()); std::iota(order.begin(), order.end(), 0);
+  vector<Alignment> alignments(lattices.size());
+  for(int epoch = 1; epoch <= epochs_; epoch++) {
+    std::shuffle(order.begin(), order.end(), *GlobalVars::rndeng);
+    LLStats ep_stats;
+    for(int align_id : order) {
+      if(epoch != 1)
+        tm.RemoveSample(alignments[align_id]);
+      alignments[align_id] = tm.CreateSample(*lattices[align_id], ep_stats);
+      tm.AddSample(alignments[align_id]);
+    }
+    cerr << "Finished epoch " << epoch << ": char=" << ep_stats.words_ << ", ppl=" << ep_stats.CalcPPL() << " (s=" << time_.Elapsed() << ")" << endl;
+    //tm.ResampleParameters();
+  }
 }
 
 template <class LM>

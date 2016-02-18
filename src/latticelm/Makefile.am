@@ -7,7 +7,8 @@ LIBCPP = \
   sentence.cc \
   timer.cc \
   hierarchical-lm.cc \
-  macros.cc
+  macros.cc \
+  lexical-tm.cc
 
 # AM_CXXFLAGS = $(BOOST_CPPFLAGS) $(OPENFST_CPPFLAGS) -I$(srcdir)/..
 AM_CXXFLAGS = $(BOOST_CPPFLAGS) -I$(srcdir)/.. -I/Users/neubig/usr/include

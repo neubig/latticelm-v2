@@ -3,6 +3,7 @@
 #include <latticelm/ll-stats.h>
 #include <latticelm/sentence.h>
 #include <latticelm/data-lattice.h>
+#include <fst/vector-fst.h>
 
 namespace latticelm {
 
@@ -32,6 +33,10 @@ public:
   void AddSample(const Alignment & align);
   Alignment CreateSample(const DataLattice & lat, LLStats & stats);
   void ResampleParameters();
+  fst::StdVectorFst CreateReducedTM(const DataLattice & lattice);
+
+  // Helpful methods
+  void PrintParams();
 
 protected:
 
