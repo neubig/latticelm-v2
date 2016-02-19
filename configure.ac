@@ -37,6 +37,9 @@ fi
 
 # Checks for libraries.
 AC_SYS_LARGEFILE
+AC_SEARCH_LIBS([dlopen], [dl dld], [], [
+  AC_MSG_ERROR([unable to find the dlopen() function])
+])
 
 # Checks for header files.
 AC_CHECK_HEADERS([sys/time.h unistd.h])

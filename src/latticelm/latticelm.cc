@@ -41,6 +41,7 @@ int LatticeLM::main(int argc, char** argv) {
       ("help", "Produce help message")
       ("train_file", po::value<string>()->default_value(""), "Training file")
       ("train_ref", po::value<string>()->default_value(""), "Training reference file containing true phoneme strings (optional)")
+      ("trans_file", po::value<string>()->default_value(""), "File containing word-tokenized translations of the training lattices in plain text.")
       ("file_format", po::value<string>()->default_value("text"), "The format of the lattices in the input file")
       ("model_type", po::value<string>()->default_value("pylm"), "Model type (hierlm to do segmentation and LM learning, pylm to just do lm learning)")
       ("beam", po::value<int>()->default_value(0), "Beam size")
@@ -84,8 +85,13 @@ int LatticeLM::main(int argc, char** argv) {
   cids_.GetId("<s>");
   cids_.GetId("</s>");
 
+  // Initialize the translation vocabulary
+  trans_ids_.GetId("<eps>");
+  trans_ids_.GetId("<s>");
+  trans_ids_.GetId("</s>");
+
   // Load data
-  vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, lattice_weight_, vm["train_file"].as<string>(), cids_);
+  vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, lattice_weight_, vm["train_file"].as<string>(), vm["trans_file"].as<string>(), cids_, trans_ids_);
 
   // Create the hierarchical LM
   if(model_type_ == "pylm") {

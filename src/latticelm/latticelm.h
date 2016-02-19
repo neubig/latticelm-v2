@@ -28,6 +28,7 @@ protected:
   std::string model_type_;
 
   SymbolSet<std::string> cids_;
+  SymbolSet<std::string> trans_ids_; // For the vocabulary of the translations.
 
   int epochs_, beam_;
   int char_n_, word_n_;

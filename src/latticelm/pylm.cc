@@ -100,7 +100,7 @@ bool Pylm::RemoveNgram(const Sentence & ngram) {
 }
 
 void Pylm::RemoveSample(const Sentence & sent, vector<bool> & fellback) {
-  Sentence ngram(1,1);
+  Sentence ngram(1,1); // Starting with just the wordId corresponding to <s>
   for(size_t i = 0; i < sent.size(); i++) {
     if(ngram.size() >= order_) ngram.erase(ngram.begin());
     ngram.push_back(sent[i]);
