@@ -1,4 +1,5 @@
 #include <latticelm/lexical-tm.h>
+#include <latticelm/sampgen.h>
 #include <fst/compose.h>
 #include <iostream>
 
@@ -103,8 +104,9 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
   vecfst.Write("composed.fst");
 
   // Sample from the composed Fst.
-  //VectorFst<LogArc> sample_fst;
-  ///*stats.lik_ +=*/ SampGen(composed_fst, sample_fst);
+  VectorFst<LogArc> sample_fst;
+  /*stats.lik_ +=*/ SampGen(composed_fst, sample_fst);
+  sample_fst.Write("sample.fst");
 
   //Alignment align = FstToAlign(sample_fst);
   //return align;
