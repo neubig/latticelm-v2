@@ -108,6 +108,8 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
   /*stats.lik_ +=*/ SampGen(composed_fst, sample_fst);
   sample_fst.Write("sample.fst");
 
+  exit(0);
+
   //Alignment align = FstToAlign(sample_fst);
   //return align;
 
