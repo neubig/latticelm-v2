@@ -4,7 +4,8 @@ noinst_PROGRAMS = test-latticelm
 TESTS = test-latticelm
 
 test_latticelm_SOURCES = \
-    test-latticelm.cc 
+    test-latticelm.cc \
+    test-io.cc
 
 test_latticelm_LDADD = \
 	../latticelm/liblatticelm.la \
