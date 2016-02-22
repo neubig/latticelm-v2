@@ -2,6 +2,7 @@
 #include <latticelm/sampgen.h>
 #include <fst/compose.h>
 #include <iostream>
+#include <cmath>
 
 using namespace latticelm;
 using namespace fst;
@@ -38,13 +39,6 @@ void LexicalTM::PrintParams() {
   for(int i = 0; i < f_vocab_size_; i++) {
     for(int j = 0; j < e_vocab_size_; j++) {
       cout << cpd_[i][j] << " ";
-    }
-    cout << endl;
-  }
-  cout << endl << "Alignment counts: " << endl;
-  for(int i = 0; i < f_vocab_size_; i++) {
-    for(int j = 0; j < e_vocab_size_; j++) {
-      cout << counts_[i][j] << " ";
     }
     cout << endl;
   }
@@ -132,6 +126,24 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
 
   return align;
 
+}
+
+void LexicalTM::ResampleParameters() {
+  // Specify hyperparameters of the Dirichlet Process.
+  double alpha = 0.20; // The strength parameter.
+  LogWeight log_alpha = LogWeight(-log(alpha));
+  // We assume a uniform distribution, base_dist_, which has been initialized to uniform.
+  for(int i = 0; i < f_vocab_size_; i++) {
+    double row_total = 0;
+    for(int j = 0; j < e_vocab_size_; j++) {
+      row_total += counts_[i][j];
+    }
+    for(int j = 0; j < e_vocab_size_; j++) {
+      LogWeight numerator = fst::Plus(fst::Times(log_alpha,base_dist_[i][j]), LogWeight(-log(counts_[i][j])));
+      LogWeight denominator = fst::Plus(log_alpha,LogWeight(-log(row_total)));
+      cpd_[i][j] = fst::Divide(numerator,denominator);
+    }
+  }
 }
 
 void LexicalTM::TestLogWeightSampling() {
