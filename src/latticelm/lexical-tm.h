@@ -19,6 +19,8 @@ public:
     e_vocab_size_ = e_vocab_size;
 
     // Zero the count vectors. Assign uniform log probabilities to the CPD
+
+    // Doesn't matter if we're including or excluding foreign epsilons as we're conditioning on the foreign side.
     for(int i=0; i < f_vocab_size_; i++) {
       vector<fst::LogWeight> cpd_row;
       vector<int> counts_row;
@@ -43,6 +45,7 @@ public:
 
   // Helpful methods
   void PrintParams();
+  void PrintCounts();
 
 protected:
 

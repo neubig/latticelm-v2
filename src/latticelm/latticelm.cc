@@ -28,6 +28,7 @@ void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, Le
         tm.RemoveSample(alignments[align_id]);
       alignments[align_id] = tm.CreateSample(*lattices[align_id], ep_stats);
       tm.AddSample(alignments[align_id]);
+      tm.PrintCounts();
     }
     cerr << "Finished epoch " << epoch << ": char=" << ep_stats.words_ << ", ppl=" << ep_stats.CalcPPL() << " (s=" << time_.Elapsed() << ")" << endl;
     exit(0);
@@ -107,8 +108,8 @@ int LatticeLM::main(int argc, char** argv) {
 
   // Initialize the translation vocabulary
   trans_ids_.GetId("<eps>");
-  trans_ids_.GetId("<s>");
-  trans_ids_.GetId("</s>");
+  //trans_ids_.GetId("<s>");
+  //trans_ids_.GetId("</s>");
 
   // Load data
   vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, lattice_weight_, vm["train_file"].as<string>(), vm["trans_file"].as<string>(), cids_, trans_ids_);
