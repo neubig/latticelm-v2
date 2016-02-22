@@ -38,6 +38,9 @@ public:
   void ResampleParameters();
   fst::VectorFst<fst::LogArc> CreateReducedTM(const DataLattice & lattice);
 
+  // Test methods to be moved elsewhere later
+  void TestLogWeightSampling();
+
   // Helpful methods
   void PrintParams();
 

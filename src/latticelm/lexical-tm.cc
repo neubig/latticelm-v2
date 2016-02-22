@@ -17,8 +17,6 @@ void LexicalTM::RemoveSample(const Alignment & align) {
 void LexicalTM::AddSample(const Alignment & align) {
   //Reduce the counts for the alignments.
   for(int i = 0; i < align.size(); i++) {
-    cout << align[i].first << endl;
-    cout << align[i].second << endl;
     counts_[align[i].first][align[i].second]++;
     assert(counts_[align[i].first][align[i].second] > 0);
   }
@@ -60,7 +58,7 @@ VectorFst<LogArc> LexicalTM::CreateReducedTM(const DataLattice & lattice) {
     // Normalizing the probabilities. Two steps:
     // 1. Find the total probability mass of the English words that occur in
     //    the translation given the foreign word
-    LogWeight total = LogWeight(0);
+    LogWeight total = LogWeight::Zero();
     // First add the probability of an epsilon (ie. null token) on the English side.
     total = fst::Plus(total, cpd_[i][0]);
     // Then check each of the English words to see if they are in the translation.
@@ -88,36 +86,112 @@ VectorFst<LogArc> LexicalTM::CreateReducedTM(const DataLattice & lattice) {
       }
     }
   }
-  static int count;
-  reduced_tm.Write("reduced_tm_" + to_string(count) + ".fst");
   return reduced_tm;
 }
 
 Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) {
 
+  TestLogWeightSampling();
+  exit(0);
+
   // Perform reduction on TM to make it conform to the lattice.translation_
   VectorFst<LogArc> reduced_tm = CreateReducedTM(lattice);
+  reduced_tm.Write("reduced_tm.fst");
 
   // Compose the lattice with the reduced tm.
   ComposeFst<LogArc> composed_fst(lattice.GetFst(), reduced_tm);
   VectorFst<LogArc> vecfst(composed_fst);
   vecfst.Write("composed.fst");
+  //const SymbolTable* isyms = composed_fst.InputSymbols();
+  //const SymbolTable* osyms = composed_fst.OutputSymbols();
+  //const string ifn("isyms.txt");
+  //composed_fst.InputSymbols()->WriteText(ifn);
+  //composed_fst.OutputSymbols()->WriteText("osyms.txt");
 
   // Sample from the composed Fst.
   VectorFst<LogArc> sample_fst;
   /*stats.lik_ +=*/ SampGen(composed_fst, sample_fst);
   sample_fst.Write("sample.fst");
 
-  exit(0);
+  Alignment align = FstToAlign(sample_fst);
+  cout << "align: " << align << endl;
 
-  //Alignment align = FstToAlign(sample_fst);
-  //return align;
-
-  /*
-  Alignment align;
-  std::pair<WordId,WordId> arrow(1,2);
-  align.push_back(arrow);
   return align;
-  */
 
 }
+
+void LexicalTM::TestLogWeightSampling() {
+
+  // Define some probabilities
+  LogWeight eighty = LogWeight(0.22314);
+  LogWeight twenty = LogWeight(1.60944);
+  LogWeight sixty = LogWeight(0.51083);
+  LogWeight ninetysix = LogWeight(0.04082);
+
+  // Create a trivial FST.
+  VectorFst<LogArc> ifst;
+  ifst.AddState();
+  ifst.AddState();
+  ifst.SetStart(0);
+  ifst.SetFinal(1, LogArc::Weight::One());
+  //ifst.AddArc(0, LogArc(1,1, eighty, 1));
+  //ifst.AddArc(0, LogArc(2,2, twenty, 1));
+  //ifst.AddArc(0, LogArc(1,1, fst::Times(eighty,eighty), 1));
+  //ifst.AddArc(0, LogArc(2,2, fst::Times(twenty,twenty), 1));
+  //ifst.AddArc(0, LogArc(1,1, sixty, 1));
+  ifst.AddArc(0, LogArc(1,1, ninetysix, 1));
+  ifst.AddArc(0, LogArc(2,2, fst::Times(twenty,twenty), 1));
+
+  cout << fst::Times(twenty,twenty) << endl;
+  cout << fst::Plus(twenty,twenty) << endl;
+
+  std::vector<int> count {0,0,0};
+  for(int epoch=0; epoch < 10000; epoch++){
+    VectorFst<LogArc> sample;
+    SampGen(ifst, sample);
+    Alignment align = FstToAlign(sample);
+    count[align[0].first]++;
+  }
+  cout << count << endl;;
+
+}
+
+/*
+  LogWeight x = LogWeight::Zero();
+  cout << "x_init: " << x << endl;
+  LogWeight a = LogWeight(1.2);
+  LogWeight b = LogWeight(0.5);
+  x = fst::Plus(x, a);
+  x = fst::Plus(x, b);
+  cout << "x: " << x << endl;
+
+  vector<float> weights;
+  weights.push_back(5.0);
+
+  LogWeight neglogprob_a(0.1054);
+  LogWeight neglogprob_b(2.3026);
+
+  LogWeight logprob_half(-0.6931);
+  cout << fst::Plus(logprob_a, logprob_b) << endl;
+
+  VectorFst<LogArc> ifst;
+  ifst.AddState();
+  ifst.AddState();
+  ifst.AddState();
+  ifst.SetStart(0);
+  ifst.SetFinal(2, LogArc::Weight::One());
+  //ifst.AddArc(0, LogArc(0,0, fst::Times(fst::Times(logprob_half, logprob_half), fst::Times(logprob_half, logprob_half)), 1));
+  ifst.AddArc(0, LogArc(0,0, logprob_a, 1));
+  ifst.AddArc(0, LogArc(1,1, logprob_b, 1));
+  ifst.AddArc(1, LogArc(2,2, logprob_a, 2));
+  ifst.AddArc(1, LogArc(3,3, logprob_b, 2));
+  VectorFst<LogArc> ofst;
+
+  for(int i = 0; i < 40; i++) {
+    float output = SampGen(ifst, ofst);
+    cout << output << endl;
+    ofst.Write("ofst.fst");
+  }
+
+  exit(0);
+*/

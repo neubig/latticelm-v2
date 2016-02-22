@@ -140,4 +140,21 @@ Sentence FstToSent(const fst::Fst<A> & ifst) {
   return ret;
 }
 
+template<class A>
+Alignment FstToAlign(const fst::Fst<A> & ifst) {
+  typedef fst::Fst<A> F;
+  auto state_id = ifst.Start();
+  Alignment ret;
+  while(true) {
+    typename fst::ArcIterator<F> aiter(ifst, state_id);
+    if(aiter.Done()) break;
+    const A& arc = aiter.Value();
+    if(arc.olabel != 0 || arc.ilabel != 0) {
+      ret.push_back(std::pair<WordId,WordId>(arc.ilabel, arc.olabel));
+    }
+    state_id = arc.nextstate;
+  }
+  return ret;
+}
+
 }
