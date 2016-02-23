@@ -77,6 +77,7 @@ int LatticeLM::main(int argc, char** argv) {
       ("seed", po::value<int>()->default_value(0), "The random seed, or 0 to change every time")
       ("lattice_weight", po::value<float>()->default_value(1.f), "Amount of weight to give to the lattice probabilities")
       ("verbose", po::value<int>()->default_value(1), "Verbosity of messages to print")
+      ("concentration", po::value<float>()->default_value(1.0), "The concentration parameter for the Dirichlet process of the translation model.")
       ;
   boost::program_options::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -101,6 +102,7 @@ int LatticeLM::main(int argc, char** argv) {
   lattice_weight_ = vm["lattice_weight"].as<float>();
   file_format_ = vm["file_format"].as<string>();
   model_type_ = vm["model_type"].as<string>();
+  alpha_ = vm["concentration"].as<float>();
 
   GlobalVars::Init(vm["verbose"].as<int>(), vm["seed"].as<int>());
 
@@ -125,7 +127,7 @@ int LatticeLM::main(int argc, char** argv) {
     HierarchicalLM hlm(cids_.size(), char_n_, word_n_);
     PerformTraining(lattices, hlm);
   } else if(model_type_ == "lextm") {
-    LexicalTM tm(cids_, trans_ids_);
+    LexicalTM tm(cids_, trans_ids_, alpha_);
     PerformTrainingLexTM(lattices, tm);
   }
 

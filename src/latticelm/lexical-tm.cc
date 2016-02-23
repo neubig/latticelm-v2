@@ -11,29 +11,29 @@ using namespace fst;
 void LexicalTM::RemoveSample(const Alignment & align) {
   //Reduce the counts for the alignments.
   for(int i = 0; i < align.size(); i++) {
-    counts_[align[i].first][align[i].second]--;
-    assert(counts_[align[i].first][align[i].second] >= 0);
+    counts_[align[i].second][align[i].first]--;
+    assert(counts_[align[i].second][align[i].first] >= 0);
   }
 }
 
 void LexicalTM::AddSample(const Alignment & align) {
   //Reduce the counts for the alignments.
   for(int i = 0; i < align.size(); i++) {
-    counts_[align[i].first][align[i].second]++;
-    assert(counts_[align[i].first][align[i].second] > 0);
+    counts_[align[i].second][align[i].first]++;
+    assert(counts_[align[i].second][align[i].first] > 0);
   }
 }
 
 void LexicalTM::PrintCounts() {
   cout << endl << "Alignment counts: " << endl;
   cout << "\t";
-  for(int j = 0; j < e_vocab_size_; j++) {
-    cout << e_vocab_.GetSym(j) << "\t";
+  for(int j = 0; j < f_vocab_size_; j++) {
+    cout << f_vocab_.GetSym(j) << "\t";
   }
   cout << endl;
-  for(int i = 0; i < f_vocab_size_; i++) {
-    cout << f_vocab_.GetSym(i) << "\t";
-    for(int j = 0; j < e_vocab_size_; j++) {
+  for(int i = 0; i < e_vocab_size_; i++) {
+    cout << e_vocab_.GetSym(i) << "\t";
+    for(int j = 0; j < f_vocab_size_; j++) {
       cout << counts_[i][j] << "\t";
     }
     cout << endl;
@@ -45,13 +45,13 @@ void LexicalTM::PrintParams() {
   cout << std::fixed << std::setw( 1 ) << std::setprecision( 3 );
   cout << endl << "CPD parameters: " << endl;
   cout << "\t";
-  for(int j = 0; j < e_vocab_size_; j++) {
-    cout << e_vocab_.GetSym(j) << "\t";
+  for(int j = 0; j < f_vocab_size_; j++) {
+    cout << f_vocab_.GetSym(j) << "\t";
   }
   cout << endl;
-  for(int i = 0; i < f_vocab_size_; i++) {
-    cout << f_vocab_.GetSym(i) << "\t";
-    for(int j = 0; j < e_vocab_size_; j++) {
+  for(int i = 0; i < e_vocab_size_; i++) {
+    cout << e_vocab_.GetSym(i) << "\t";
+    for(int j = 0; j < f_vocab_size_; j++) {
       cout << exp(-1*cpd_[i][j].Value()) << "\t";
     }
     cout << endl;
@@ -60,26 +60,36 @@ void LexicalTM::PrintParams() {
 }
 
 void LexicalTM::Normalize(int epochs) {
-  for(int i = 0; i < f_vocab_size_; i++) {
-    for(int j = 0; j < e_vocab_size_; j++) {
+  for(int i = 0; i < e_vocab_size_; i++) {
+    for(int j = 0; j < f_vocab_size_; j++) {
       cpd_accumulator_[i][j] = fst::Divide(cpd_accumulator_[i][j],LogWeight(-log(epochs)));
     }
   }
   cout << std::fixed << std::setw( 1 ) << std::setprecision( 3 );
   cout << endl << "Average CPD parameters: " << endl;
   cout << "\t";
-  for(int j = 0; j < e_vocab_size_; j++) {
-    cout << e_vocab_.GetSym(j) << "\t";
+  for(int j = 0; j < f_vocab_size_; j++) {
+    cout << f_vocab_.GetSym(j) << "\t";
   }
   cout << endl;
-  for(int i = 0; i < f_vocab_size_; i++) {
-    cout << f_vocab_.GetSym(i) << "\t";
-    for(int j = 0; j < e_vocab_size_; j++) {
+  for(int i = 0; i < e_vocab_size_; i++) {
+    cout << e_vocab_.GetSym(i) << "\t";
+    for(int j = 0; j < f_vocab_size_; j++) {
       cout << exp(-1*cpd_accumulator_[i][j].Value()) << "\t";
     }
     cout << endl;
   }
   cout << endl;
+}
+
+int in(WordId word_id, Sentence sentence) {
+  int ret = 0;
+  for(int i = 0; i < sentence.size(); i++) {
+    if (word_id == sentence[i]) {
+      ret++;
+    }
+  }
+  return ret;
 }
 
 /** Create a TM based on the parameters that is constrained by the lattice's translation **/
@@ -91,46 +101,37 @@ VectorFst<LogArc> LexicalTM::CreateReducedTM(const DataLattice & lattice) {
 
   Sentence translation = lattice.GetTranslation();
 
-  // %TODO: This should be optimized at some point
+  // %TODO: Perhaps this should be optimized at some point.
 
   // Starting at 1 because 0 represents an epsilon transition and we don't
-  // accept epsilon transitions on the German side in the translation model.
+  // accept epsilon transitions on the foreign side in the translation model.
   // That would result in loops in the composition.
-  for(int i = 1; i < f_vocab_size_; i++) {
+  for(int f_word_id = 1; f_word_id < f_vocab_size_; f_word_id++) {
     // Normalizing the probabilities. Two steps:
-    // 1. Find the total probability mass of the English words that occur in
-    //    the translation given the foreign word
+    // 1. Find the total probability mass of the p(f|e) for each of the English words that occur in
+    //    the translation given the foreign word.
     LogWeight total = LogWeight::Zero();
     // First add the probability of an epsilon (ie. null token) on the English side.
-    total = fst::Plus(total, cpd_[i][0]);
-    // Then check each of the English words to see if they are in the translation.
-    for(int j = 1; j < e_vocab_size_; j++) {
-      for(int k = 0; k < translation.size(); k++) {
-        if(j == translation[k]) {
-          total = fst::Plus(total, cpd_[i][j]);
-          // We break here because we don't want that English word counted twice. Or do we?
-          // Yeah, actually we do. A German word aligns to one English word.
-          // The more duplicates of the English word we see in the translation
-          // the more likely we want the German word to align to that word?
-          // So we don't //break;
-        }
+    total = fst::Plus(total, cpd_[0][f_word_id]);
+    // Then check each of the English words to see if they are in the
+    // translation, and add probability mass if they are
+    for(int e_word_id = 1; e_word_id < e_vocab_size_; e_word_id++) {
+      int times_in = in(e_word_id, translation);
+      for(int i = 0; i < times_in; i++) {
+        total = fst::Plus(total, cpd_[e_word_id][f_word_id]);
       }
     }
     // 2. Divide the conditional probability of each of the English words by the
     //    aforementioned total when adding a corresponding arc to the WFST.
-
-    // First for the necessarily present null token on the English side.
-    reduced_tm.AddArc(only_state, LogArc(i, 0, fst::Divide(cpd_[i][0], total), only_state));
-    // Then  checking if the rest of the English words are in the translation, before adding the arc.
-    for(int j = 1; j < e_vocab_size_; j++) {
-      for(int k = 0; k < translation.size(); k++) {
-        if(j == translation[k]) {
-          reduced_tm.AddArc(only_state, LogArc(i, j, fst::Divide(cpd_[i][j], total), only_state));
-          // Not breaking here as the English side may have duplicate tokens. // break;
-        }
+    reduced_tm.AddArc(only_state, LogArc(f_word_id, 0, fst::Divide(cpd_[0][f_word_id], total), only_state));
+    for(int e_word_id = 1; e_word_id < e_vocab_size_; e_word_id++) {
+      int times_in = in(e_word_id, translation);
+      for(int i = 0; i < times_in; i++) {
+        reduced_tm.AddArc(only_state, LogArc(f_word_id, e_word_id, fst::Divide(cpd_[e_word_id][f_word_id], total), only_state));
       }
     }
   }
+
   return reduced_tm;
 }
 
@@ -182,17 +183,15 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
 
 void LexicalTM::ResampleParameters() {
   // Specify hyperparameters of the Dirichlet Process.
-  double alpha = 2; // The strength parameter.
-  LogWeight log_alpha = LogWeight(-log(alpha));
   // We assume a uniform distribution, base_dist_, which has been initialized to uniform.
-  for(int i = 0; i < f_vocab_size_; i++) {
+  for(int i = 0; i < e_vocab_size_; i++) {
     double row_total = 0;
-    for(int j = 0; j < e_vocab_size_; j++) {
+    for(int j = 0; j < f_vocab_size_; j++) {
       row_total += counts_[i][j];
     }
-    for(int j = 0; j < e_vocab_size_; j++) {
-      LogWeight numerator = fst::Plus(fst::Times(log_alpha,base_dist_[i][j]), LogWeight(-log(counts_[i][j])));
-      LogWeight denominator = fst::Plus(log_alpha,LogWeight(-log(row_total)));
+    for(int j = 0; j < f_vocab_size_; j++) {
+      LogWeight numerator = fst::Plus(fst::Times(log_alpha_,base_dist_[i][j]), LogWeight(-log(counts_[i][j])));
+      LogWeight denominator = fst::Plus(log_alpha_,LogWeight(-log(row_total)));
       cpd_[i][j] = fst::Divide(numerator,denominator);
       cpd_accumulator_[i][j] = fst::Plus(cpd_accumulator_[i][j], cpd_[i][j]);
     }

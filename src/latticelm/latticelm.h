@@ -35,6 +35,7 @@ protected:
   int epochs_, beam_;
   int char_n_, word_n_;
   float lattice_weight_;
+  float alpha_; //A concentration parameter, if you want it.
 
   Timer time_;
 
