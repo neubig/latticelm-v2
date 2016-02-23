@@ -35,6 +35,8 @@ void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, Le
     tm.ResampleParameters();
     tm.PrintParams();
   }
+  tm.Normalize(epochs_);
+  tm.PrintParams();
 }
 
 template <class LM>

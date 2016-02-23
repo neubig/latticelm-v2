@@ -92,6 +92,7 @@ vector<DataLatticePtr> DataLattice::ReadFromOpenFSTFile(const std::string & file
     WordId in = dict.GetId(line_tokens[2]);
     WordId out = dict.GetId(line_tokens[3]);
     LogWeight weight = LogWeight(stof(line_tokens[4]));
+    cout << "weight: " << weight << endl;
     // Add any necessary states before we add the arc.
     while(num_states < from_state+1 || num_states < to_state+1) {
       ptr->fst_.AddState();

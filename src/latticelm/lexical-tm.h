@@ -26,7 +26,8 @@ public:
       vector<fst::LogWeight> base_dist_row;
       vector<int> counts_row;
       for(int j=0; j < e_vocab_size_; j++) {
-        cpd_row.push_back(fst::LogWeight(-log(1.0/e_vocab_size)));
+        //cpd_row.push_back(fst::LogWeight(-log(1.0/e_vocab_size)));
+        cpd_row.push_back(fst::LogWeight::Zero());
         base_dist_row.push_back(fst::LogWeight(-log(1.0/e_vocab_size)));
         counts_row.push_back(0);
       }
@@ -42,6 +43,7 @@ public:
   Alignment CreateSample(const DataLattice & lat, LLStats & stats);
   void ResampleParameters();
   fst::VectorFst<fst::LogArc> CreateReducedTM(const DataLattice & lattice);
+  void Normalize(int epochs);
 
   // Test methods to be moved elsewhere later
   void TestLogWeightSampling();

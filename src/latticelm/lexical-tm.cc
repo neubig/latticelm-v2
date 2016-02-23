@@ -38,11 +38,19 @@ void LexicalTM::PrintParams() {
   cout << endl << "CPD parameters: " << endl;
   for(int i = 0; i < f_vocab_size_; i++) {
     for(int j = 0; j < e_vocab_size_; j++) {
-      cout << cpd_[i][j] << " ";
+      cout << exp(-1*cpd_[i][j].Value()) << " ";
     }
     cout << endl;
   }
   cout << endl;
+}
+
+void LexicalTM::Normalize(int epochs) {
+  for(int i = 0; i < f_vocab_size_; i++) {
+    for(int j = 0; j < e_vocab_size_; j++) {
+      cpd_[i][j] = fst::Divide(cpd_[i][j],LogWeight(-log(epochs)));
+    }
+  }
 }
 
 /** Create a TM based on the parameters that is constrained by the lattice's translation **/
@@ -130,7 +138,7 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
 
 void LexicalTM::ResampleParameters() {
   // Specify hyperparameters of the Dirichlet Process.
-  double alpha = 0.20; // The strength parameter.
+  double alpha = 0.1; // The strength parameter.
   LogWeight log_alpha = LogWeight(-log(alpha));
   // We assume a uniform distribution, base_dist_, which has been initialized to uniform.
   for(int i = 0; i < f_vocab_size_; i++) {
@@ -141,7 +149,7 @@ void LexicalTM::ResampleParameters() {
     for(int j = 0; j < e_vocab_size_; j++) {
       LogWeight numerator = fst::Plus(fst::Times(log_alpha,base_dist_[i][j]), LogWeight(-log(counts_[i][j])));
       LogWeight denominator = fst::Plus(log_alpha,LogWeight(-log(row_total)));
-      cpd_[i][j] = fst::Divide(numerator,denominator);
+      cpd_[i][j] = fst::Plus(cpd_[i][j], fst::Divide(numerator,denominator));
     }
   }
 }
