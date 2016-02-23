@@ -25,15 +25,17 @@ public:
     // Doesn't matter if we're including or excluding foreign epsilons as we're conditioning on the foreign side.
     for(int i=0; i < f_vocab_size_; i++) {
       vector<fst::LogWeight> cpd_row;
+      vector<fst::LogWeight> cpd_accumulator_row;
       vector<fst::LogWeight> base_dist_row;
       vector<int> counts_row;
       for(int j=0; j < e_vocab_size_; j++) {
-        //cpd_row.push_back(fst::LogWeight(-log(1.0/e_vocab_size)));
-        cpd_row.push_back(fst::LogWeight::Zero());
+        cpd_row.push_back(fst::LogWeight(-log(1.0/e_vocab_size_)));
+        cpd_accumulator_row.push_back(fst::LogWeight::Zero());
         base_dist_row.push_back(fst::LogWeight(-log(1.0/e_vocab_size_)));
         counts_row.push_back(0);
       }
       cpd_.push_back(cpd_row);
+      cpd_accumulator_.push_back(cpd_accumulator_row);
       base_dist_.push_back(base_dist_row);
       counts_.push_back(counts_row);
     }
@@ -66,6 +68,9 @@ protected:
   // A conditional probability disribution that will give the probability of
   // seeing an English WordId given a German WordId.
   vector<vector<fst::LogWeight>> cpd_;
+  // A grid that stores the sampling of the CPD at each iteration and gets
+  // normalized after all the sampling is complete.
+  vector<vector<fst::LogWeight>> cpd_accumulator_;
   // A uniform base distribution that the Dirichlet process will use.
   vector<vector<fst::LogWeight>> base_dist_;
   // The number of times we've seen a German WordId align to an English WordId.

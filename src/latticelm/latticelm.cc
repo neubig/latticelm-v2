@@ -27,6 +27,7 @@ void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, Le
     for(int align_id : order) {
       if(epoch != 1)
         tm.RemoveSample(alignments[align_id]);
+      cout << "align_id: " << align_id << endl;
       alignments[align_id] = tm.CreateSample(*lattices[align_id], ep_stats);
       tm.AddSample(alignments[align_id]);
       tm.PrintCounts();
@@ -36,7 +37,6 @@ void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, Le
     tm.PrintParams();
   }
   tm.Normalize(epochs_);
-  tm.PrintParams();
 }
 
 template <class LM>

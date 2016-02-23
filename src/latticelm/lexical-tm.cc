@@ -26,9 +26,15 @@ void LexicalTM::AddSample(const Alignment & align) {
 
 void LexicalTM::PrintCounts() {
   cout << endl << "Alignment counts: " << endl;
+  cout << "\t";
+  for(int j = 0; j < e_vocab_size_; j++) {
+    cout << e_vocab_.GetSym(j) << "\t";
+  }
+  cout << endl;
   for(int i = 0; i < f_vocab_size_; i++) {
+    cout << f_vocab_.GetSym(i) << "\t";
     for(int j = 0; j < e_vocab_size_; j++) {
-      cout << counts_[i][j] << " ";
+      cout << counts_[i][j] << "\t";
     }
     cout << endl;
   }
@@ -56,9 +62,24 @@ void LexicalTM::PrintParams() {
 void LexicalTM::Normalize(int epochs) {
   for(int i = 0; i < f_vocab_size_; i++) {
     for(int j = 0; j < e_vocab_size_; j++) {
-      cpd_[i][j] = fst::Divide(cpd_[i][j],LogWeight(-log(epochs)));
+      cpd_accumulator_[i][j] = fst::Divide(cpd_accumulator_[i][j],LogWeight(-log(epochs)));
     }
   }
+  cout << std::fixed << std::setw( 1 ) << std::setprecision( 3 );
+  cout << endl << "Average CPD parameters: " << endl;
+  cout << "\t";
+  for(int j = 0; j < e_vocab_size_; j++) {
+    cout << e_vocab_.GetSym(j) << "\t";
+  }
+  cout << endl;
+  for(int i = 0; i < f_vocab_size_; i++) {
+    cout << f_vocab_.GetSym(i) << "\t";
+    for(int j = 0; j < e_vocab_size_; j++) {
+      cout << exp(-1*cpd_accumulator_[i][j].Value()) << "\t";
+    }
+    cout << endl;
+  }
+  cout << endl;
 }
 
 /** Create a TM based on the parameters that is constrained by the lattice's translation **/
@@ -122,6 +143,8 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
   VectorFst<LogArc> reduced_tm = CreateReducedTM(lattice);
   reduced_tm.Write("reduced_tm.fst");
 
+  lattice.GetFst().Write("lattice.fst");
+
   // Compose the lattice with the reduced tm.
   ComposeFst<LogArc> composed_fst(lattice.GetFst(), reduced_tm);
   VectorFst<LogArc> vecfst(composed_fst);
@@ -137,6 +160,19 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
   /*stats.lik_ +=*/ SampGen(composed_fst, sample_fst);
   sample_fst.Write("sample.fst");
 
+  /*
+  vector<int> counts = {0,0,0,0,0,0,0};
+  for(int e = 0; e < 1000; e++) {
+    VectorFst<LogArc> sample_fst;
+    SampGen(composed_fst, sample_fst);
+    Alignment align = FstToAlign(sample_fst);
+    counts[align[0].first]++;
+    counts[align[1].first]++;
+  }
+  cout << counts << endl;
+  exit(0);
+  */
+
   Alignment align = FstToAlign(sample_fst);
   cout << "align: " << align << endl;
 
@@ -146,7 +182,7 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
 
 void LexicalTM::ResampleParameters() {
   // Specify hyperparameters of the Dirichlet Process.
-  double alpha = 0.1; // The strength parameter.
+  double alpha = 2; // The strength parameter.
   LogWeight log_alpha = LogWeight(-log(alpha));
   // We assume a uniform distribution, base_dist_, which has been initialized to uniform.
   for(int i = 0; i < f_vocab_size_; i++) {
@@ -157,7 +193,8 @@ void LexicalTM::ResampleParameters() {
     for(int j = 0; j < e_vocab_size_; j++) {
       LogWeight numerator = fst::Plus(fst::Times(log_alpha,base_dist_[i][j]), LogWeight(-log(counts_[i][j])));
       LogWeight denominator = fst::Plus(log_alpha,LogWeight(-log(row_total)));
-      cpd_[i][j] = fst::Plus(cpd_[i][j], fst::Divide(numerator,denominator));
+      cpd_[i][j] = fst::Divide(numerator,denominator);
+      cpd_accumulator_[i][j] = fst::Plus(cpd_accumulator_[i][j], cpd_[i][j]);
     }
   }
 }
