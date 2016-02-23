@@ -125,7 +125,7 @@ int LatticeLM::main(int argc, char** argv) {
     HierarchicalLM hlm(cids_.size(), char_n_, word_n_);
     PerformTraining(lattices, hlm);
   } else if(model_type_ == "lextm") {
-    LexicalTM tm(cids_.size(), trans_ids_.size());
+    LexicalTM tm(cids_, trans_ids_);
     PerformTrainingLexTM(lattices, tm);
   }
 

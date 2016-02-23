@@ -3,6 +3,7 @@
 #include <fst/compose.h>
 #include <iostream>
 #include <cmath>
+#include <iomanip>
 
 using namespace latticelm;
 using namespace fst;
@@ -35,10 +36,17 @@ void LexicalTM::PrintCounts() {
 }
 
 void LexicalTM::PrintParams() {
+  cout << std::fixed << std::setw( 1 ) << std::setprecision( 3 );
   cout << endl << "CPD parameters: " << endl;
+  cout << "\t";
+  for(int j = 0; j < e_vocab_size_; j++) {
+    cout << e_vocab_.GetSym(j) << "\t";
+  }
+  cout << endl;
   for(int i = 0; i < f_vocab_size_; i++) {
+    cout << f_vocab_.GetSym(i) << "\t";
     for(int j = 0; j < e_vocab_size_; j++) {
-      cout << exp(-1*cpd_[i][j].Value()) << " ";
+      cout << exp(-1*cpd_[i][j].Value()) << "\t";
     }
     cout << endl;
   }

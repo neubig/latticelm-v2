@@ -14,9 +14,11 @@ class LexicalTM {
 
 public:
 
-  LexicalTM(int f_vocab_size, int e_vocab_size) {
-    f_vocab_size_ = f_vocab_size;
-    e_vocab_size_ = e_vocab_size;
+  LexicalTM(SymbolSet<std::string> f_vocab, SymbolSet<std::string> e_vocab) {
+    f_vocab_size_ = f_vocab.size();
+    e_vocab_size_ = e_vocab.size();
+    f_vocab_ = f_vocab;
+    e_vocab_ = e_vocab;
 
     // Zero the count vectors. Assign uniform log probabilities to the CPD
 
@@ -28,7 +30,7 @@ public:
       for(int j=0; j < e_vocab_size_; j++) {
         //cpd_row.push_back(fst::LogWeight(-log(1.0/e_vocab_size)));
         cpd_row.push_back(fst::LogWeight::Zero());
-        base_dist_row.push_back(fst::LogWeight(-log(1.0/e_vocab_size)));
+        base_dist_row.push_back(fst::LogWeight(-log(1.0/e_vocab_size_)));
         counts_row.push_back(0);
       }
       cpd_.push_back(cpd_row);
@@ -54,9 +56,12 @@ public:
 
 protected:
 
-  // Assuming our vocab is less than 32,767.
+  // Assuming our vocab fits in an int.
   int f_vocab_size_;
   int e_vocab_size_;
+  SymbolSet<std::string> f_vocab_;
+  SymbolSet<std::string> e_vocab_;
+
 
   // A conditional probability disribution that will give the probability of
   // seeing an English WordId given a German WordId.
