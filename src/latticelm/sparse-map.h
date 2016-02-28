@@ -2,7 +2,7 @@
 #define SPARSE_MAP_H__
 
 #include <travatar/real.h>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <iostream>
 #include <vector>
 
@@ -10,8 +10,8 @@ namespace travatar {
 
 // Hashtable-based sparse map
 typedef std::pair<int, Real> SparsePair;
-typedef boost::unordered_map<int, Real> SparseMap;
-typedef boost::unordered_map<int, int> SparseIntMap;
+typedef std::unordered_map<int, Real> SparseMap;
+typedef std::unordered_map<int, int> SparseIntMap;
 
 bool operator==(const SparseMap & lhs, const SparseMap & rhs);
 bool operator!=(const SparseMap & lhs, const SparseMap & rhs);
