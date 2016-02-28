@@ -7,6 +7,7 @@
 #include <latticelm/symbol-set.h>
 #include <latticelm/sentence.h>
 #include <latticelm/data-lattice.h>
+#include <latticelm/lexical-tm.h>
 
 namespace latticelm {
 
@@ -20,6 +21,7 @@ public:
 
   template <class LM>
   void PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm);
+  void PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, LexicalTM & lm);
   
 protected:
 
@@ -33,6 +35,7 @@ protected:
   int epochs_, beam_;
   int char_n_, word_n_;
   float lattice_weight_;
+  float alpha_; //A concentration parameter, if you want it.
 
   Timer time_;
 
