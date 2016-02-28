@@ -20,40 +20,7 @@ inline float neglogsumexp(const vector<float> & probs) {
 }  
 
 // sample a single value appropriately from a vector of weights
-unsigned SampleWeights(vector<float> & ws, float anneal = 1) {
-
-  if(ws.size() == 0) { 
-    THROW_ERROR("No final states found during sampling");
-  } else if(ws.size() == 1) {
-    return 0;
-  }
-
-  float minWeight = fst::numeric_limits<float>::infinity(), weightTotal = 0;
-  unsigned i;
-  for (i = 0; i < ws.size(); i++) {
-    ws[i] *= anneal;
-    minWeight = std::min(ws[i], minWeight);
-  }
-  for (i = 0; i < ws.size(); i++) {
-    float & f = ws[i];
-    f = exp(minWeight-f);
-    weightTotal += f;
-  }
-  // cout << "Total weight=" << weightTotal;
-  weightTotal *= rand()/(double)RAND_MAX;
-  // cout << ", random weight=" << weightTotal << " (basis " << minWeight << ")"<<endl;
-  for(i = 0; i < ws.size(); i++) {
-    weightTotal -= ws[i];
-    // cout << " after weight " << i << ", " << weightTotal << endl;
-    if(weightTotal <= 0)
-      break;
-  }
-  if(i == ws.size()) {
-    cerr << "WARNING: Sampling failed, probability mass left at end of cycle" << endl;
-    i--;
-  }
-  return i;
-}
+unsigned SampleWeights(vector<float> & ws, float anneal = 1);
 
 template<class A>
 float SampGen(const fst::Fst<A> & ifst, fst::MutableFst<A> & ofst, unsigned nbest = 1, float anneal = 1) { 
@@ -169,6 +136,23 @@ Sentence FstToSent(const fst::Fst<A> & ifst) {
     const A& a = aiter.Value();
     if(a.olabel != 0) ret.push_back(a.olabel);
     sid = a.nextstate;
+  }
+  return ret;
+}
+
+template<class A>
+Alignment FstToAlign(const fst::Fst<A> & ifst) {
+  typedef fst::Fst<A> F;
+  auto state_id = ifst.Start();
+  Alignment ret;
+  while(true) {
+    typename fst::ArcIterator<F> aiter(ifst, state_id);
+    if(aiter.Done()) break;
+    const A& arc = aiter.Value();
+    if(arc.olabel != 0 || arc.ilabel != 0) {
+      ret.push_back(std::pair<WordId,WordId>(arc.ilabel, arc.olabel));
+    }
+    state_id = arc.nextstate;
   }
   return ret;
 }

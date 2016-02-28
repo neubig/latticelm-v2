@@ -7,6 +7,7 @@
 #include <latticelm/latticelm.h>
 #include <latticelm/data-lattice.h>
 #include <latticelm/hierarchical-lm.h>
+#include <latticelm/lexical-tm.h>
 #include <latticelm/ll-stats.h>
 #include <latticelm/macros.h>
 
@@ -14,6 +15,29 @@ using namespace std;
 namespace po = boost::program_options;
 
 namespace latticelm {
+
+void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, LexicalTM & tm) {
+  // Perform training
+  vector<int> order(lattices.size()); std::iota(order.begin(), order.end(), 0);
+  vector<Alignment> alignments(lattices.size());
+  tm.PrintParams();
+  for(int epoch = 1; epoch <= epochs_; epoch++) {
+    std::shuffle(order.begin(), order.end(), *GlobalVars::rndeng);
+    LLStats ep_stats;
+    for(int align_id : order) {
+      if(epoch != 1)
+        tm.RemoveSample(alignments[align_id]);
+      cout << "align_id: " << align_id << endl;
+      alignments[align_id] = tm.CreateSample(*lattices[align_id], ep_stats);
+      tm.AddSample(alignments[align_id]);
+      tm.PrintCounts();
+    }
+    cerr << "Finished epoch " << epoch << ": char=" << ep_stats.words_ << ", ppl=" << ep_stats.CalcPPL() << " (s=" << time_.Elapsed() << ")" << endl;
+    tm.ResampleParameters();
+    tm.PrintParams();
+  }
+  tm.Normalize(epochs_);
+}
 
 template <class LM>
 void LatticeLM::PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm) {
@@ -53,6 +77,7 @@ int LatticeLM::main(int argc, char** argv) {
       ("seed", po::value<int>()->default_value(0), "The random seed, or 0 to change every time")
       ("lattice_weight", po::value<float>()->default_value(1.f), "Amount of weight to give to the lattice probabilities")
       ("verbose", po::value<int>()->default_value(1), "Verbosity of messages to print")
+      ("concentration", po::value<float>()->default_value(1.0), "The concentration parameter for the Dirichlet process of the translation model.")
       ;
   boost::program_options::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -77,6 +102,7 @@ int LatticeLM::main(int argc, char** argv) {
   lattice_weight_ = vm["lattice_weight"].as<float>();
   file_format_ = vm["file_format"].as<string>();
   model_type_ = vm["model_type"].as<string>();
+  alpha_ = vm["concentration"].as<float>();
 
   GlobalVars::Init(vm["verbose"].as<int>(), vm["seed"].as<int>());
 
@@ -87,8 +113,8 @@ int LatticeLM::main(int argc, char** argv) {
 
   // Initialize the translation vocabulary
   trans_ids_.GetId("<eps>");
-  trans_ids_.GetId("<s>");
-  trans_ids_.GetId("</s>");
+  //trans_ids_.GetId("<s>");
+  //trans_ids_.GetId("</s>");
 
   // Load data
   vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, lattice_weight_, vm["train_file"].as<string>(), vm["trans_file"].as<string>(), cids_, trans_ids_);
@@ -100,6 +126,9 @@ int LatticeLM::main(int argc, char** argv) {
   } else if(model_type_ == "hierlm") {
     HierarchicalLM hlm(cids_.size(), char_n_, word_n_);
     PerformTraining(lattices, hlm);
+  } else if(model_type_ == "lextm") {
+    LexicalTM tm(cids_, trans_ids_, alpha_);
+    PerformTrainingLexTM(lattices, tm);
   }
 
   return 0;
