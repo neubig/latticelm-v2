@@ -2,10 +2,19 @@
 #include <latticelm/pylm-fst.h>
 #include <latticelm/macros.h>
 #include <latticelm/sampgen.h>
+#include <boost/random/beta_distribution.hpp>
+#include <boost/random/gamma_distribution.hpp>
 #include <fst/compose.h>
 
 using namespace latticelm;
 using namespace fst;
+
+#define PRIOR_DA 1.5
+#define PRIOR_DB 1.5
+#define PRIOR_SA 2.0
+#define PRIOR_SB 1.0
+#define DEFAULT_DISC 0.5
+#define DEFAULT_STREN 1.0
 
 PylmStateLink * Pylm::GetChildStateLink(int sid, WordId wid, bool add) {
   assert(wid >= 0);
@@ -63,9 +72,53 @@ std::vector<PylmWordProbState> Pylm::CalcWordProbStates(int sid) {
   return wps;
 }
 
+inline void AddToVec(int val, std::vector<int> & vec) {
+  if(vec.size() <= val) vec.resize(val+1, 0);
+  vec[val]++;
+}
+
 void Pylm::ResampleParameters() {
-  cerr << "WARNING: Pylm::ResampleParameters not implemented yet." << endl;
-  // THROW_ERROR("Pylm::ResampleParameters");
+  // auxiliary variables method
+  for(int i = order_-1; i >= 0; i--) {
+    float stren = params_[i].first, disc = params_[i].second;
+    // Gather the counts for all states of this order
+    vector<int> state_table_counts, state_cust_counts, table_cust_counts;
+    for(auto & state : states_) {
+      if(state.level != i) continue;
+      AddToVec(state.total_tables, state_table_counts);
+      AddToVec(state.total_customers, state_cust_counts);
+      for(auto & child : state.children)
+        for(int cust : child.customers)
+          AddToVec(cust, table_cust_counts);
+    }
+    // Re-sample the parameters
+    float da = PRIOR_DA, db = PRIOR_DB, sa = PRIOR_SA, sb = PRIOR_SB;
+    for(int cnt = 1; cnt < (int)state_table_counts.size(); cnt++) {
+      for(int j = 1; j < cnt; j++) {
+        std::bernoulli_distribution bd(stren/(stren+disc*j));
+        for(int k = 0; k < state_table_counts[cnt]; k++) {
+          if(bd(*GlobalVars::rndeng)) { sa++; } else { da++; }
+        }
+      }
+    }
+    for(int cnt = 2; cnt < (int)state_cust_counts.size(); cnt++) {
+      boost::random::beta_distribution<float> bd(stren+1, cnt-1);
+      for(int k = 0; k < state_cust_counts[cnt]; k++)
+        sb -= log(bd(*GlobalVars::rndeng));
+    }
+    for(int cnt = 1; cnt < (int)table_cust_counts.size(); cnt++) {
+      for(int j = 1; j < cnt; j++) {
+        std::bernoulli_distribution bd(1 - (j-1)/(j-disc));
+        for(int k = 0; k < table_cust_counts[cnt]; k++)
+          db += bd(*GlobalVars::rndeng);
+      }
+    }
+    boost::random::gamma_distribution<float> gd(sa,1/sb);
+    params_[i].first = gd(*GlobalVars::rndeng); // gammaSample(sa,1/sb);
+    boost::random::beta_distribution<float> bd(da,db);
+    params_[i].second = bd(*GlobalVars::rndeng); // betaSample(da,db);
+    cerr << "  params_[" << i << "] == " << params_[i] << endl;
+  }
 }
 
 bool Pylm::RemoveNgram(const Sentence & ngram) {
@@ -84,6 +137,7 @@ bool Pylm::RemoveNgram(const Sentence & ngram) {
     left -= link->customers[t];
     if(left <= 0) {
       if(link->customers[t] == 1) {
+        states_[state].total_tables--;
         link->customers.erase(link->customers.begin()+t);
         if(ngram.size() == 1)
           return true;
@@ -151,6 +205,7 @@ bool Pylm::AddNgram(const Sentence & ngram, float base) {
     // Use new table
     } else {
       link.customers.push_back(1); link.total_customers++; 
+      states_[states[lev]].total_tables++;
     }
   }
   return lev < 0;
