@@ -2,9 +2,16 @@
 #include <latticelm/pylm-fst.h>
 #include <latticelm/macros.h>
 #include <latticelm/sampgen.h>
-#include <boost/random/beta_distribution.hpp>
-#include <boost/random/gamma_distribution.hpp>
 #include <fst/compose.h>
+
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 105400
+# include <boost/math/distributions/beta.hpp>
+# include <boost/math/distributions/gamma.hpp>
+#else
+# include <boost/random/beta_distribution.hpp>
+# include <boost/random/gamma_distribution.hpp>
+#endif
 
 using namespace latticelm;
 using namespace fst;
@@ -85,6 +92,7 @@ inline void AddToVec(int val, std::vector<int> & vec) {
 }
 
 void Pylm::ResampleParameters() {
+  std::uniform_real_distribution<float> ud(0.f, 1.f);
   // auxiliary variables method
   for(int i = order_-1; i >= 0; i--) {
     float stren = params_[i].first, disc = params_[i].second;
@@ -109,9 +117,15 @@ void Pylm::ResampleParameters() {
       }
     }
     for(int cnt = 2; cnt < (int)state_cust_counts.size(); cnt++) {
+#if BOOST_VERSION >= 105400
+      boost::math::beta_distribution<float> bd(stren+1, cnt-1);
+      for(int k = 0; k < state_cust_counts[cnt]; k++)
+        sb -= log(quantile(bd, ud(*GlobalVars::rndeng)));
+#else
       boost::random::beta_distribution<float> bd(stren+1, cnt-1);
       for(int k = 0; k < state_cust_counts[cnt]; k++)
         sb -= log(bd(*GlobalVars::rndeng));
+#endif
     }
     for(int cnt = 1; cnt < (int)table_cust_counts.size(); cnt++) {
       for(int j = 1; j < cnt; j++) {
@@ -120,10 +134,17 @@ void Pylm::ResampleParameters() {
           db += bd(*GlobalVars::rndeng);
       }
     }
+#if BOOST_VERSION >= 105400
+    boost::math::gamma_distribution<float> gd(sa,1/sb);
+    params_[i].first = quantile(gd, ud(*GlobalVars::rndeng)); // gammaSample(sa,1/sb);
+    boost::math::beta_distribution<float> bd(da,db);
+    params_[i].second = quantile(bd, ud(*GlobalVars::rndeng)); // betaSample(da,db);
+#else
     boost::random::gamma_distribution<float> gd(sa,1/sb);
     params_[i].first = gd(*GlobalVars::rndeng); // gammaSample(sa,1/sb);
     boost::random::beta_distribution<float> bd(da,db);
     params_[i].second = bd(*GlobalVars::rndeng); // betaSample(da,db);
+#endif
     cerr << "  params_[" << i << "] == " << params_[i] << endl;
   }
 }
