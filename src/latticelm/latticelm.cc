@@ -66,7 +66,7 @@ int LatticeLM::main(int argc, char** argv) {
       ("train_file", po::value<string>()->default_value(""), "Training file")
       ("train_ref", po::value<string>()->default_value(""), "Training reference file containing true phoneme strings (optional)")
       ("trans_file", po::value<string>()->default_value(""), "File containing word-tokenized translations of the training lattices in plain text.")
-      ("file_format", po::value<string>()->default_value("text"), "The format of the lattices in the input file")
+      ("file_format", po::value<string>()->default_value("text"), "The format of the lattices in the input file (text/openfst)")
       ("model_type", po::value<string>()->default_value("pylm"), "Model type (hierlm to do segmentation and LM learning, pylm to just do lm learning)")
       ("beam", po::value<int>()->default_value(0), "Beam size")
       ("epochs", po::value<int>()->default_value(100), "Epochs")
@@ -108,6 +108,7 @@ int LatticeLM::main(int argc, char** argv) {
 
   // Initialize the vocabulary
   cids_.GetId("<eps>");
+  cids_.GetId("<phi>");
   cids_.GetId("<s>");
   cids_.GetId("</s>");
 

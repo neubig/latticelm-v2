@@ -32,9 +32,7 @@ TODOs that need to be fixed before things are usable:
 * Change epsilon transitions to Phi transitions for efficiency
 * Implement hierarchical LM that performs word segmentation
 * Fix compile path for openfst
-* Implement hyperparameter sampling
 * Fix PylmFST to do dynamic compiling
-* Lattice input
 
 TODOs that would be nice to fix:
 

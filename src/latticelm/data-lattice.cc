@@ -8,6 +8,8 @@ using namespace latticelm;
 using namespace std;
 using namespace fst;
 
+#define EOS_ID 3
+
 vector<DataLatticePtr> DataLattice::ReadFromFile(const std::string & format, float weight, const std::string & filename, const std::string & trans_filename, SymbolSet<string> & dict, SymbolSet<string> & trans_dict) {
   vector<DataLatticePtr> data_lattices;
   if(format == "text") {
@@ -30,7 +32,7 @@ vector<DataLatticePtr> DataLattice::ReadFromTextFile(const std::string & filenam
   vector<DataLatticePtr> ret;
   while(getline(in, line)) {
     Sentence sent = ParseSentence(line, dict);
-    if(*sent.rbegin() != 2) sent.push_back(2); // All sentences must end with a sentence ending
+    if(*sent.rbegin() != EOS_ID) sent.push_back(EOS_ID); // All sentences must end with a sentence ending
     DataLatticePtr ptr(new DataLattice);
     VectorFst<LogArc>::StateId last_id = ptr->fst_.AddState(), next_id;
     ptr->fst_.SetStart(last_id);

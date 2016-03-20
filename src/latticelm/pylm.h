@@ -4,6 +4,9 @@
 #include <latticelm/sentence.h>
 #include <latticelm/data-lattice.h>
 
+#define BOS_ID 2
+#define EOS_ID 3
+
 namespace latticelm {
 
 // A data structure to hold words, probabilities, and states
@@ -32,6 +35,7 @@ public:
   PylmState(WordId w, int l, int p) : wid(w), level(l), backoff_sid(p), children(), total_customers(0), total_tables(0) { }
 
   float CalcProb(const PylmStateLink & link, const pair<float,float> & param) {
+    // std::cerr << "CalcProb: (" << link.total_customers << "-" << link.customers.size() << "*" << param.second << ")/(" << total_customers << "+" << param.first << ") == " << (link.total_customers-link.customers.size()*param.second)/(total_customers+param.first) << std::endl;
     return (link.total_customers-link.customers.size()*param.second)/(total_customers+param.first);
   }
 
@@ -41,6 +45,7 @@ public:
 
   // Calculate the backoff probability for a state
   float CalcBackoff(const std::pair<float,float> & param) {
+    // std::cerr << "CalcBackoff: (" << total_tables << "*" << param.second << " + " << param.first << ")/(" << total_customers << "+" << param.first << ") == " << (total_tables*param.second + param.first)/(total_customers+param.first) << std::endl;
     return (total_tables*param.second + param.first)/(total_customers+param.first);
   }
 
@@ -56,8 +61,8 @@ class Pylm {
 
 public:
   Pylm(int base_size, int order) : states_(1, PylmState(-1, 0, -1)), base_size_(base_size), order_(order), init_state_id_(0), params_(order, pair<float,float>(1.0, 0.1)) {
-    GetChildStateId(0, 1, true); // Get "<s>"
-    GetChildStateId(0, 2, true); // and "</s>"
+    GetChildStateId(0, BOS_ID, true); // Get "<s>"
+    GetChildStateId(0, EOS_ID, true); // and "</s>"
   }
   ~Pylm() { }
 
@@ -86,6 +91,8 @@ public:
   
   std::vector<PylmState> & GetStates() { return states_; }
 
+  bool CheckEmpty();
+
   // Remove or add a sample to the statistics
   void RemoveSample(const Sentence & sent, vector<bool> & fellback);
   void AddSample(const Sentence & sent, const vector<float> & bases, vector<bool> & fellback);
@@ -107,6 +114,8 @@ public:
   Sentence CreateSample(const DataLattice & lat, LLStats & stats);  
 
   void ResampleParameters();
+
+  const std::vector<PylmState> & GetStates() const { return states_; }
 
 protected:
 

@@ -142,14 +142,14 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
 
   // Perform reduction on TM to make it conform to the lattice.translation_
   VectorFst<LogArc> reduced_tm = CreateReducedTM(lattice);
-  reduced_tm.Write("reduced_tm.fst");
+  // reduced_tm.Write("reduced_tm.fst");
 
-  lattice.GetFst().Write("lattice.fst");
+  // lattice.GetFst().Write("lattice.fst");
 
   // Compose the lattice with the reduced tm.
   ComposeFst<LogArc> composed_fst(lattice.GetFst(), reduced_tm);
   VectorFst<LogArc> vecfst(composed_fst);
-  vecfst.Write("composed.fst");
+  // vecfst.Write("composed.fst");
   //const SymbolTable* isyms = composed_fst.InputSymbols();
   //const SymbolTable* osyms = composed_fst.OutputSymbols();
   //const string ifn("isyms.txt");
@@ -159,7 +159,7 @@ Alignment LexicalTM::CreateSample(const DataLattice & lattice, LLStats & stats) 
   // Sample from the composed Fst.
   VectorFst<LogArc> sample_fst;
   /*stats.lik_ +=*/ SampGen(composed_fst, sample_fst);
-  sample_fst.Write("sample.fst");
+  // sample_fst.Write("sample.fst");
 
   /*
   vector<int> counts = {0,0,0,0,0,0,0};

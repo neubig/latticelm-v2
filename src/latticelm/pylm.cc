@@ -16,6 +16,12 @@ using namespace fst;
 #define DEFAULT_DISC 0.5
 #define DEFAULT_STREN 1.0
 
+#define EPS_ID 0
+#define PHI_ID 1
+#define BOS_ID 2
+#define EOS_ID 3
+#define FALLBACK_ID 1
+
 PylmStateLink * Pylm::GetChildStateLink(int sid, WordId wid, bool add) {
   assert(wid >= 0);
   assert(sid < (int)states_.size() && sid >= 0);
@@ -48,7 +54,7 @@ PylmStateLink * Pylm::GetChildStateLink(int sid, WordId wid, bool add) {
 std::vector<PylmWordProbState> Pylm::CalcWordProbStates(int sid) {
   PylmState & state = states_[sid];
   std::vector<PylmWordProbState> wps;
-  if(state.wid == 2) return wps; // If we're at a final state, we don't do anything
+  if(state.wid == EOS_ID) return wps; // If we're at a final state, we don't do anything
   assert(state.level < params_.size());
   pair<float,float> & param = params_[state.level];
   // If we're at the top state, calculate everything, but no backoff
@@ -65,9 +71,10 @@ std::vector<PylmWordProbState> Pylm::CalcWordProbStates(int sid) {
     }
   // Otherwise, calculate a backoff and only some things
   } else {
-    wps.push_back(PylmWordProbState(0,state.CalcBackoff(param),state.backoff_sid));
+    wps.push_back(PylmWordProbState(FALLBACK_ID,state.CalcBackoff(param),state.backoff_sid));
     for(auto & itval : state.children)
-      wps.push_back(state.CalcWPS(itval, param));
+      if(itval.total_customers != 0)
+        wps.push_back(state.CalcWPS(itval, param));
   }
   return wps;
 }
@@ -128,16 +135,20 @@ bool Pylm::RemoveNgram(const Sentence & ngram) {
     assert(state != -1);
   }
   PylmStateLink* link = GetChildStateLink(state, ngram[j], false);
-  assert(link != NULL && link->total_customers != 0);
+  assert(link != NULL);
+  assert(link->total_customers != 0);
   std::uniform_int_distribution<int> ud(1, link->total_customers);
   int left = ud(*GlobalVars::rndeng);
   link->total_customers--;
+  assert(link->total_customers >= 0);
   states_[state].total_customers--;
+  assert(states_[state].total_customers >= 0);
   for(int t = 0; t < link->customers.size(); t++) {
     left -= link->customers[t];
     if(left <= 0) {
       if(link->customers[t] == 1) {
         states_[state].total_tables--;
+        assert(states_[state].total_tables >= 0);
         link->customers.erase(link->customers.begin()+t);
         if(ngram.size() == 1)
           return true;
@@ -146,6 +157,7 @@ bool Pylm::RemoveNgram(const Sentence & ngram) {
         return RemoveNgram(new_ngram);
       } else {
         link->customers[t]--;
+        assert(link->customers[t] >= 0);
         return false;
       }
     }
@@ -167,15 +179,12 @@ void Pylm::RemoveSample(const Sentence & sent, vector<bool> & fellback) {
 }
 
 bool Pylm::AddNgram(const Sentence & ngram, float base) {
-  int i, j, t, lev, state; // i=first word, j=curr word, t=table, lev=context length
+  int j, t, lev, state; // i=first word, j=curr word, t=table, lev=context length
   vector<float> full_probs(1,base), single_probs;
-  vector<PylmStateLink*> links;
   vector<int> states;
   // Calculate the probabilities from unigram onward
   for(lev = 0; lev < ngram.size(); lev++) {
-    i = ngram.size()-lev-1;
-    state = 0;
-    for(j = i; j < ngram.size()-1; j++)
+    for(j = ngram.size()-lev-1, state = 0; j < ngram.size()-1; j++)
       state = GetChildStateId(state, ngram[j], true);
     PylmStateLink* link = GetChildStateLink(state, ngram[j], true);
     assert(lev >= 0 && lev < params_.size());
@@ -184,27 +193,32 @@ bool Pylm::AddNgram(const Sentence & ngram, float base) {
     single_probs.push_back(prob);
     full_probs.push_back((*full_probs.rbegin())*backoff + prob);
     states.push_back(state);
-    links.push_back(link);
+  }
+  // Get the links one more time, because pointers might have changed.
+  vector<PylmStateLink*> links;
+  for(lev = 0; lev < ngram.size(); lev++) {
+    for(j = ngram.size()-lev-1, state = 0; j < ngram.size()-1; j++)
+      state = GetChildStateId(state, ngram[j], true);
+    links.push_back(GetChildStateLink(state, ngram[j], true));
   }
   // Next, going backwards, at each level decide whether to add a new table
   for(lev = ngram.size()-1; lev >= 0; lev--) {
     std::bernoulli_distribution bd(single_probs[lev]/full_probs[lev+1]);
-    PylmStateLink & link = *links[lev];
     states_[states[lev]].total_customers++;
     // Use existing table
     if(bd(*GlobalVars::rndeng)) {
-      std::uniform_real_distribution<float> ud(0, link.total_customers - link.customers.size() * params_[lev].second);
+      std::uniform_real_distribution<float> ud(0, links[lev]->total_customers - links[lev]->customers.size() * params_[lev].second);
       float left = ud(*GlobalVars::rndeng);
-      for(t = 0; t < (int)link.customers.size(); t++) {
-        left -= link.customers[t]-params_[lev].second;
+      for(t = 0; t < (int)links[lev]->customers.size(); t++) {
+        left -= links[lev]->customers[t]-params_[lev].second;
         if(left <= 0) break;
       }
-      assert(t < link.customers.size());
-      link.customers[t]++; link.total_customers++;
+      assert(t < links[lev]->customers.size());
+      links[lev]->customers[t]++; links[lev]->total_customers++;
       break;
     // Use new table
     } else {
-      link.customers.push_back(1); link.total_customers++; 
+      links[lev]->customers.push_back(1); links[lev]->total_customers++; 
       states_[states[lev]].total_tables++;
     }
   }
@@ -225,15 +239,43 @@ void Pylm::AddSample(const Sentence & sent, const vector<float> & bases, vector<
   }
 }
 
+bool Pylm::CheckEmpty() {
+  bool ret = true;
+  for(size_t i = 0; i < states_.size(); i++) {
+    auto & state = states_[i];
+    if(state.total_customers != 0 || state.total_tables != 0) {
+      cerr << "state " << i << " not empty: cust=" << state.total_customers << ", tables=" << state.total_tables << endl;
+      ret = false;
+    }
+    for(auto & child : state.children) {
+      if(child.total_customers != 0 || child.customers.size() != 0) {
+        cerr << "child " << i << "->" << child.wid << " not empty: cust=" << child.total_customers << ", tables=" << child.customers.size() << endl;
+        ret = false;
+      }
+    }
+  }
+  return ret;
+}
+
 Sentence Pylm::CreateSample(const DataLattice & lattice, LLStats & stats) {
   PylmFst<LogArc> pylm_fst(*this);
-  VectorFst<LogArc> vec_lattice_fst(lattice.GetFst()); vec_lattice_fst.Write("lattice.txt");
-  VectorFst<LogArc> vec_pylm_fst(pylm_fst); vec_pylm_fst.Write("pylm.txt"); // cerr << "WARNING: not using dynamic PyLM, should be fixed" << endl;
-  ComposeFst<LogArc> composed_fst(lattice.GetFst(), vec_pylm_fst);
-  VectorFst<LogArc> vec_composed_fst(composed_fst); vec_composed_fst.Write("composed.txt"); // cerr << "WARNING: not using dynamic PyLM, should be fixed" << endl;
+  // VectorFst<LogArc> vec_lattice_fst(lattice.GetFst()); vec_lattice_fst.Write("lattice.txt");
+  // VectorFst<LogArc> vec_pylm_fst(pylm_fst); // vec_pylm_fst.Write("pylm.txt"); 
+  
+  // Phi transitions
+  typedef PhiMatcher< Matcher<Fst<LogArc> > > PM;
+  ComposeFstOptions<LogArc, PM> copts(CacheOptions(),
+                        new PM(lattice.GetFst(), MATCH_NONE),
+                        new PM(pylm_fst, MATCH_INPUT, PHI_ID));
+  ComposeFst<LogArc> composed_fst(lattice.GetFst(), pylm_fst, copts);
+
+  // // Epsilon transitions
+  // ComposeFst<LogArc> composed_fst(lattice.GetFst(), pylm_fst);
+
+  VectorFst<LogArc> vec_composed_fst(composed_fst); // vec_composed_fst.Write("composed.txt"); cerr << "WARNING: not using dynamic PyLM, should be fixed" << endl;
   VectorFst<LogArc> sample_fst;
   stats.lik_ += SampGen(composed_fst, sample_fst);
-  sample_fst.Write("sample.txt");
+  // sample_fst.Write("sample.txt");
   Sentence sent = FstToSent(sample_fst);
   stats.words_ += sent.size();
   return sent;
