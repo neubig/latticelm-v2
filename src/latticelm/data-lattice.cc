@@ -119,5 +119,5 @@ void DataLattice::ReadTranslations(vector<DataLatticePtr> data_lattices, const s
     Sentence sent = ParseSentence(line, trans_dict);
     data_lattices[i++]->SetTranslation(sent);
   }
-  if(i != data_lattices.size()) THROW_ERROR("Number of lattices and number of translations are not equal.");
+  if(i != (int)data_lattices.size()) THROW_ERROR("Number of lattices and number of translations are not equal.");
 }

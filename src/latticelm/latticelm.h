@@ -25,17 +25,17 @@ public:
   
 protected:
 
-  std::string file_format_;
-  std::string model_in_file_, model_out_file_;
-  std::string model_type_;
+  // std::string file_format_;
+  // std::string model_in_file_, model_out_file_;
+  // std::string model_type_;
 
   SymbolSet<std::string> cids_;
   SymbolSet<std::string> trans_ids_; // For the vocabulary of the translations.
 
-  int epochs_, beam_;
-  int char_n_, word_n_;
-  float lattice_weight_;
-  float alpha_; //A concentration parameter, if you want it.
+  // int epochs_, beam_;
+  // int char_n_, word_n_;
+  // float lattice_weight_;
+  // float alpha_; //A concentration parameter, if you want it.
 
   Timer time_;
 

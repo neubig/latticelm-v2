@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <numeric>
+#include <fst/compat.h>
 #include <boost/program_options.hpp>
 #include <latticelm/timer.h>
 #include <latticelm/latticelm.h>
@@ -14,6 +15,23 @@
 using namespace std;
 namespace po = boost::program_options;
 
+DEFINE_bool(help, false, "Display help");
+DEFINE_string(train_file, "", "Training file");
+DEFINE_string(train_ref, "", "Training reference file containing true phoneme strings (optional)");
+DEFINE_string(trans_file, "", "File containing word-tokenized translations of the training lattices in plain text.");
+DEFINE_string(file_format, "text", "The format of the lattices in the input file (text/openfst)");
+DEFINE_string(model_type, "pylm", "Model type (hierlm to do segmentation and LM learning, pylm to just do lm learning)");
+DEFINE_int32(beam, 0, "Beam size");
+DEFINE_int32(epochs, 100, "Epochs");
+DEFINE_int32(word_n, 2, "Length of word n-grams");
+DEFINE_int32(char_n, 2, "Length of character n-grams");
+DEFINE_string(model_in, "", "The file to read the model to");
+DEFINE_string(model_out, "", "The file to write the final model to");
+DEFINE_int32(seed, 0, "The random seed, or 0 to change every time");
+DEFINE_double(lattice_weight, 1.f, "Amount of weight to give to the lattice probabilities");
+DEFINE_int32(verbose, 1, "Verbosity of messages to print");
+DEFINE_double(concentration, 1.0, "The concentration parameter for the Dirichlet process of the translation model.");
+
 namespace latticelm {
 
 void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, LexicalTM & tm) {
@@ -21,7 +39,7 @@ void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, Le
   vector<int> order(lattices.size()); std::iota(order.begin(), order.end(), 0);
   vector<Alignment> alignments(lattices.size());
   tm.PrintParams();
-  for(int epoch = 1; epoch <= epochs_; epoch++) {
+  for(int epoch = 1; epoch <= FLAGS_epochs; epoch++) {
     std::shuffle(order.begin(), order.end(), *GlobalVars::rndeng);
     LLStats ep_stats;
     for(int align_id : order) {
@@ -36,7 +54,7 @@ void LatticeLM::PerformTrainingLexTM(const vector<DataLatticePtr> & lattices, Le
     tm.ResampleParameters();
     tm.PrintParams();
   }
-  tm.Normalize(epochs_);
+  tm.Normalize(FLAGS_epochs);
 }
 
 template <class LM>
@@ -45,7 +63,7 @@ void LatticeLM::PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm
   // Perform training
   vector<int> order(lattices.size()); std::iota(order.begin(), order.end(), 0);
   vector<Sentence> sentences(lattices.size());
-  for(int epoch = 1; epoch <= epochs_; epoch++) {
+  for(int epoch = 1; epoch <= FLAGS_epochs; epoch++) {
     std::shuffle(order.begin(), order.end(), *GlobalVars::rndeng);
     LLStats ep_stats;
     for(int sid : order) {
@@ -60,31 +78,12 @@ void LatticeLM::PerformTraining(const vector<DataLatticePtr> & lattices, LM & lm
 }
 
 int LatticeLM::main(int argc, char** argv) {
-  po::options_description desc("*** latticelm (by Graham Neubig) ***");
-  desc.add_options()
-      ("help", "Produce help message")
-      ("train_file", po::value<string>()->default_value(""), "Training file")
-      ("train_ref", po::value<string>()->default_value(""), "Training reference file containing true phoneme strings (optional)")
-      ("trans_file", po::value<string>()->default_value(""), "File containing word-tokenized translations of the training lattices in plain text.")
-      ("file_format", po::value<string>()->default_value("text"), "The format of the lattices in the input file (text/openfst)")
-      ("model_type", po::value<string>()->default_value("pylm"), "Model type (hierlm to do segmentation and LM learning, pylm to just do lm learning)")
-      ("beam", po::value<int>()->default_value(0), "Beam size")
-      ("epochs", po::value<int>()->default_value(100), "Epochs")
-      ("word_n", po::value<int>()->default_value(2), "Length of word n-grams")
-      ("char_n", po::value<int>()->default_value(2), "Length of character n-grams")
-      ("model_in", po::value<string>()->default_value(""), "The file to read the model to")
-      ("model_out", po::value<string>()->default_value(""), "The file to write the final model to")
-      ("seed", po::value<int>()->default_value(0), "The random seed, or 0 to change every time")
-      ("lattice_weight", po::value<float>()->default_value(1.f), "Amount of weight to give to the lattice probabilities")
-      ("verbose", po::value<int>()->default_value(1), "Verbosity of messages to print")
-      ("concentration", po::value<float>()->default_value(1.0), "The concentration parameter for the Dirichlet process of the translation model.")
-      ;
-  boost::program_options::variables_map vm;
-  po::store(po::parse_command_line(argc, argv, desc), vm);
-  po::notify(vm);   
-  if (vm.count("help")) {
-      cout << desc << endl;
-      return 1;
+  string usage = "*** latticelm (by Graham Neubig) ***";
+  SET_FLAGS(usage.c_str(), &argc, &argv, true);
+
+  if (FLAGS_help) {
+    ShowUsage();
+    return 1;
   }
 
   // Create the timer
@@ -95,16 +94,8 @@ int LatticeLM::main(int argc, char** argv) {
   string line;
 
   // Save various settings
-  epochs_ = vm["epochs"].as<int>();
-  beam_ = vm["beam"].as<int>();
-  char_n_ = vm["char_n"].as<int>();
-  word_n_ = vm["word_n"].as<int>();
-  lattice_weight_ = vm["lattice_weight"].as<float>();
-  file_format_ = vm["file_format"].as<string>();
-  model_type_ = vm["model_type"].as<string>();
-  alpha_ = vm["concentration"].as<float>();
 
-  GlobalVars::Init(vm["verbose"].as<int>(), vm["seed"].as<int>());
+  GlobalVars::Init(FLAGS_verbose, FLAGS_seed);
 
   // Initialize the vocabulary
   cids_.GetId("<eps>");
@@ -118,17 +109,17 @@ int LatticeLM::main(int argc, char** argv) {
   //trans_ids_.GetId("</s>");
 
   // Load data
-  vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(file_format_, lattice_weight_, vm["train_file"].as<string>(), vm["trans_file"].as<string>(), cids_, trans_ids_);
+  vector<DataLatticePtr> lattices = DataLattice::ReadFromFile(FLAGS_file_format, FLAGS_lattice_weight, FLAGS_train_file, FLAGS_trans_file, cids_, trans_ids_);
 
   // Create the hierarchical LM
-  if(model_type_ == "pylm") {
-    Pylm pylm(cids_.size(), char_n_);
+  if(FLAGS_model_type == "pylm") {
+    Pylm pylm(cids_.size(), FLAGS_char_n);
     PerformTraining(lattices, pylm);
-  } else if(model_type_ == "hierlm") {
-    HierarchicalLM hlm(cids_.size(), char_n_, word_n_);
+  } else if(FLAGS_model_type == "hierlm") {
+    HierarchicalLM hlm(cids_.size(), FLAGS_char_n, FLAGS_word_n);
     PerformTraining(lattices, hlm);
-  } else if(model_type_ == "lextm") {
-    LexicalTM tm(cids_, trans_ids_, alpha_);
+  } else if(FLAGS_model_type == "lextm") {
+    LexicalTM tm(cids_, trans_ids_, FLAGS_concentration);
     PerformTrainingLexTM(lattices, tm);
   }
 

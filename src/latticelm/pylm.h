@@ -81,7 +81,7 @@ public:
   }
 
   PylmState & GetState(int sid) {
-    if(sid >= states_.size()) THROW_ERROR("State overflow");
+    if(sid >= (int)states_.size()) THROW_ERROR("State overflow");
     return states_[sid];
   }
 

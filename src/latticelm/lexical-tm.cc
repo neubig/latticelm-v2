@@ -10,7 +10,7 @@ using namespace fst;
 
 void LexicalTM::RemoveSample(const Alignment & align) {
   //Reduce the counts for the alignments.
-  for(int i = 0; i < align.size(); i++) {
+  for(int i = 0; i < (int)align.size(); i++) {
     counts_[align[i].second][align[i].first]--;
     assert(counts_[align[i].second][align[i].first] >= 0);
   }
@@ -18,7 +18,7 @@ void LexicalTM::RemoveSample(const Alignment & align) {
 
 void LexicalTM::AddSample(const Alignment & align) {
   //Reduce the counts for the alignments.
-  for(int i = 0; i < align.size(); i++) {
+  for(int i = 0; i < (int)align.size(); i++) {
     counts_[align[i].second][align[i].first]++;
     assert(counts_[align[i].second][align[i].first] > 0);
   }
@@ -62,7 +62,7 @@ void LexicalTM::PrintParams() {
 void LexicalTM::Normalize(int epochs) {
   for(int i = 0; i < e_vocab_size_; i++) {
     for(int j = 0; j < f_vocab_size_; j++) {
-      cpd_accumulator_[i][j] = fst::Divide(cpd_accumulator_[i][j],LogWeight(-log(epochs)));
+      cpd_accumulator_[i][j] = LogWeight(-log(exp(-cpd_accumulator_[i][j].Value())/epochs));
     }
   }
   cout << std::fixed << std::setw( 1 ) << std::setprecision( 3 );
@@ -84,7 +84,7 @@ void LexicalTM::Normalize(int epochs) {
 
 int in(WordId word_id, Sentence sentence) {
   int ret = 0;
-  for(int i = 0; i < sentence.size(); i++) {
+  for(int i = 0; i < (int)sentence.size(); i++) {
     if (word_id == sentence[i]) {
       ret++;
     }

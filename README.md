@@ -29,10 +29,9 @@ TODO
 
 TODOs that need to be fixed before things are usable:
 
-* Change epsilon transitions to Phi transitions for efficiency
 * Implement hierarchical LM that performs word segmentation
 * Fix compile path for openfst
-* Fix PylmFST to do dynamic compiling
+* Currently not performing interpolation for existing ngrams
 
 TODOs that would be nice to fix:
 
